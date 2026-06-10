@@ -15,7 +15,9 @@ class ImportFixturesCommand extends Command
 
     private const STAGE_MAP = [
         'GROUP_STAGE'    => 'group',
+        'LAST_32'        => 'r32',
         'ROUND_OF_32'    => 'r32',
+        'LAST_16'        => 'r16',
         'ROUND_OF_16'    => 'r16',
         'QUARTER_FINALS' => 'qf',
         'SEMI_FINALS'    => 'sf',
@@ -36,6 +38,7 @@ class ImportFixturesCommand extends Command
 
         $count = 0;
         $skipped = 0;
+        $tbd = 0;
 
         foreach ($fixtures as $fixture) {
             $stage = self::STAGE_MAP[$fixture['stage'] ?? ''] ?? null;
@@ -46,14 +49,23 @@ class ImportFixturesCommand extends Command
                 continue;
             }
 
+            // Knockout matches without teams yet — save as placeholders, update later
+            $homeTeam = $fixture['homeTeam']['name'] ?? null;
+            $awayTeam = $fixture['awayTeam']['name'] ?? null;
+
+            if ($homeTeam === null || $awayTeam === null) {
+                $tbd++;
+                continue; // skip TBD knockout matches, they'll be importable after groups finish
+            }
+
             $groupName = $this->extractGroupName($fixture['group'] ?? null, $stage);
             $isFinished = ($fixture['status'] ?? '') === 'FINISHED';
 
             WorldMatch::updateOrCreate(
                 ['api_fixture_id' => $fixture['id']],
                 [
-                    'home_team'      => $fixture['homeTeam']['name'],
-                    'away_team'      => $fixture['awayTeam']['name'],
+                    'home_team'      => $homeTeam,
+                    'away_team'      => $awayTeam,
                     'home_team_flag' => $fixture['homeTeam']['crest'] ?? null,
                     'away_team_flag' => $fixture['awayTeam']['crest'] ?? null,
                     'kickoff_at'     => Carbon::parse($fixture['utcDate']),
@@ -68,7 +80,14 @@ class ImportFixturesCommand extends Command
             $count++;
         }
 
-        $this->info("Imported/updated {$count} fixtures." . ($skipped ? " Skipped: {$skipped}." : ''));
+        $this->info("Imported/updated: {$count} fixtures.");
+
+        if ($tbd > 0) {
+            $this->line("Skipped {$tbd} knockout fixtures (teams TBD — rerun after group stage).");
+        }
+        if ($skipped > 0) {
+            $this->warn("Skipped {$skipped} unknown stages.");
+        }
 
         return self::SUCCESS;
     }
@@ -79,6 +98,7 @@ class ImportFixturesCommand extends Command
             return null;
         }
 
+        // "GROUP_A" → "A"
         if (preg_match('/GROUP_([A-L])/i', $group, $m)) {
             return strtoupper($m[1]);
         }

@@ -1,18 +1,24 @@
 <script setup lang="ts">
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import { Head } from '@inertiajs/vue3';
+import { ref, computed } from 'vue';
 import type { GroupStanding } from '@/types';
 
 interface Props {
     standings: Record<string, GroupStanding[]>;
 }
 
-defineProps<Props>();
+const props = defineProps<Props>();
 
-function goalDiff(team: GroupStanding): string {
-    const diff = team.goals_for - team.goals_against;
-    return diff > 0 ? `+${diff}` : String(diff);
-}
+const activeGroup = ref<string | null>(null);
+
+const groups = computed(() => Object.keys(props.standings).sort());
+
+const visibleStandings = computed(() =>
+    activeGroup.value
+        ? { [activeGroup.value]: props.standings[activeGroup.value] }
+        : props.standings
+);
 </script>
 
 <template>
@@ -21,20 +27,43 @@ function goalDiff(team: GroupStanding): string {
 
         <div class="py-6">
             <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-                <h1 class="mb-6 text-2xl font-bold text-gray-800 dark:text-gray-100">Tabele grup</h1>
 
-                <div v-if="Object.keys(standings).length === 0" class="rounded-lg bg-white p-8 text-center text-gray-500 shadow dark:bg-gray-800">
-                    Tabele nie zostały jeszcze zsynchronizowane. Admin musi uruchomić synchronizację (<code>SyncStandingsJob</code>).
+                <div class="mb-6 flex flex-wrap items-center gap-3">
+                    <h1 class="text-2xl font-bold text-gray-800 dark:text-gray-100">Tabele grup</h1>
+
+                    <!-- Group filters -->
+                    <div v-if="groups.length" class="flex flex-wrap gap-1.5 sm:ml-4">
+                        <button
+                            @click="activeGroup = null"
+                            class="filter-btn"
+                            :class="activeGroup === null ? 'filter-active' : 'filter-inactive'"
+                        >
+                            Wszystkie
+                        </button>
+                        <button
+                            v-for="g in groups"
+                            :key="g"
+                            @click="activeGroup = activeGroup === g ? null : g"
+                            class="filter-btn"
+                            :class="activeGroup === g ? 'filter-active' : 'filter-inactive'"
+                        >
+                            Gr. {{ g }}
+                        </button>
+                    </div>
                 </div>
 
-                <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                <div v-if="Object.keys(standings).length === 0" class="rounded-lg bg-white p-8 text-center text-gray-500 shadow dark:bg-gray-800">
+                    Tabele nie zostały jeszcze zsynchronizowane. Admin musi uruchomić synchronizację (<code>mundial:sync --standings</code>).
+                </div>
+
+                <div class="grid gap-6 sm:grid-cols-2">
                     <div
-                        v-for="(teams, groupName) in standings"
+                        v-for="(teams, groupName) in visibleStandings"
                         :key="groupName"
                         class="overflow-hidden rounded-lg bg-white shadow dark:bg-gray-800"
                     >
-                        <div class="bg-indigo-600 px-4 py-2">
-                            <h2 class="font-bold text-white">Grupa {{ groupName }}</h2>
+                        <div class="bg-indigo-600 px-4 py-2.5">
+                            <h2 class="font-bold text-white tracking-wide">Grupa {{ groupName }}</h2>
                         </div>
                         <table class="w-full">
                             <thead>
@@ -74,7 +103,20 @@ function goalDiff(team: GroupStanding): string {
                         </table>
                     </div>
                 </div>
+
             </div>
         </div>
     </AuthenticatedLayout>
 </template>
+
+<style scoped>
+.filter-btn {
+    @apply rounded-full px-3 py-1 text-xs font-semibold transition-colors cursor-pointer;
+}
+.filter-active {
+    @apply bg-indigo-600 text-white;
+}
+.filter-inactive {
+    @apply bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600;
+}
+</style>

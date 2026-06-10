@@ -19,7 +19,7 @@ class LoginRequest extends FormRequest
     {
         return [
             'name' => ['required', 'string', 'max:100'],
-            'pin' => ['required', 'digits_between:4,6'],
+            'password' => ['required', 'string', 'min:4'],
         ];
     }
 }

@@ -21,7 +21,7 @@ class Participant extends Authenticatable implements FilamentUser
     /** @var list<string> */
     protected $fillable = [
         'name',
-        'pin',
+        'password',
         'phone',
         'is_admin',
         'paid_entry',
@@ -37,7 +37,7 @@ class Participant extends Authenticatable implements FilamentUser
         'sms_notifications' => 'boolean',
     ];
 
-    protected function pin(): Attribute
+    protected function password(): Attribute
     {
         return Attribute::make(
             set: fn (string $value) => Hash::make($value),
@@ -52,14 +52,6 @@ class Participant extends Authenticatable implements FilamentUser
     public function tiebreakerPick(): HasOne
     {
         return $this->hasOne(TiebreakerPick::class);
-    }
-
-    /**
-     * The column used by Laravel Auth for password validation.
-     */
-    public function getAuthPassword(): string
-    {
-        return $this->pin;
     }
 
     public function pointsTotal(): int

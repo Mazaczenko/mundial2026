@@ -7,7 +7,7 @@ use Illuminate\Notifications\Notification;
 class WelcomeNotification extends Notification
 {
     public function __construct(
-        private readonly string $pin,
+        private readonly string $password,
     ) {}
 
     /**
@@ -22,6 +22,6 @@ class WelcomeNotification extends Notification
     {
         $appUrl = config('app.url');
 
-        return "🏆 Hej! Dołączyłeś do typowania Mundial 2026.\nZaloguj się: {$appUrl}\nTwój PIN: {$this->pin}";
+        return "🏆 Hej! Dołączyłeś do typowania Mundial 2026.\nZaloguj się: {$appUrl}\nTwoje hasło: {$this->password}";
     }
 }

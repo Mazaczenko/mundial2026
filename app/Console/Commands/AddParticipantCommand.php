@@ -10,7 +10,7 @@ class AddParticipantCommand extends Command
 {
     protected $signature = 'mundial:add-participant
                             {name : Imię uczestnika}
-                            {--pin= : 4-6 cyfrowy PIN}
+                            {--password= : Hasło uczestnika}
                             {--phone= : Numer telefonu np. +48500123456}
                             {--admin : Ustaw jako administratora}';
 
@@ -19,24 +19,18 @@ class AddParticipantCommand extends Command
     public function handle(): int
     {
         $name = $this->argument('name');
-        $pin = $this->option('pin');
+        $password = $this->option('password');
         $phone = $this->option('phone') ?: null;
 
-        if (empty($pin)) {
-            $this->error('PIN jest wymagany. Użyj --pin=XXXX');
-
-            return self::FAILURE;
-        }
-
-        if (! preg_match('/^\d{4,6}$/', $pin)) {
-            $this->error('PIN musi mieć 4-6 cyfr.');
+        if (empty($password)) {
+            $this->error('Hasło jest wymagane. Użyj --password=HASLO');
 
             return self::FAILURE;
         }
 
         $participant = Participant::create([
             'name' => $name,
-            'pin' => $pin,
+            'password' => $password,
             'phone' => $phone,
             'is_admin' => (bool) $this->option('admin'),
         ]);
@@ -44,7 +38,7 @@ class AddParticipantCommand extends Command
         $this->info("Uczestnik \"{$name}\" został dodany (ID: {$participant->id}).");
 
         if ($phone !== null) {
-            $participant->notify(new WelcomeNotification($pin));
+            $participant->notify(new WelcomeNotification($password));
             $this->info("Wysłano SMS powitalny na numer {$phone}.");
         }
 

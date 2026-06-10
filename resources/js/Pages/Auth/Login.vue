@@ -8,13 +8,13 @@ import { Head, useForm } from '@inertiajs/vue3';
 
 const form = useForm({
     name: '',
-    pin: '',
+    password: '',
 });
 
 const submit = () => {
     form.post(route('login.post'), {
         onFinish: () => {
-            form.reset('pin');
+            form.reset('password');
         },
     });
 };
@@ -53,20 +53,18 @@ const submit = () => {
             </div>
 
             <div class="mt-4">
-                <InputLabel for="pin" value="PIN" />
+                <InputLabel for="password" value="Hasło" />
 
                 <TextInput
-                    id="pin"
+                    id="password"
                     type="password"
                     class="mt-1 block w-full"
-                    v-model="form.pin"
+                    v-model="form.password"
                     required
                     autocomplete="current-password"
-                    placeholder="4-6 cyfr"
-                    inputmode="numeric"
                 />
 
-                <InputError class="mt-2" :message="form.errors.pin" />
+                <InputError class="mt-2" :message="form.errors.password" />
             </div>
 
             <div class="mt-6">

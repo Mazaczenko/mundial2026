@@ -41,11 +41,10 @@ class ParticipantResource extends Resource
                     ->required()
                     ->maxLength(100),
 
-                TextInput::make('pin')
-                    ->label('PIN')
+                TextInput::make('password')
+                    ->label('Hasło')
                     ->password()
                     ->minLength(4)
-                    ->maxLength(6)
                     ->dehydrated(fn (?string $state) => filled($state))
                     ->required(fn (string $operation) => $operation === 'create')
                     ->hint(fn (string $operation) => $operation === 'edit' ? 'Zostaw puste, aby nie zmieniać' : null),
@@ -118,8 +117,8 @@ class ParticipantResource extends Resource
             ->actions([
                 EditAction::make(),
 
-                Action::make('send_pin_sms')
-                    ->label('Wyślij PIN SMS')
+                Action::make('send_password_sms')
+                    ->label('Wyślij hasło SMS')
                     ->icon('heroicon-o-device-phone-mobile')
                     ->color('info')
                     ->visible(fn (Participant $record) => filled($record->phone))

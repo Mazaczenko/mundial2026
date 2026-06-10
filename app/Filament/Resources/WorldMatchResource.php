@@ -158,7 +158,7 @@ class WorldMatchResource extends Resource
                 Action::make('view_bets')
                     ->label('Typy')
                     ->icon('heroicon-o-eye')
-                    ->url(fn (WorldMatch $record) => Pages\ViewMatchBets::getUrl(['record' => $record->id])),
+                    ->url(fn (WorldMatch $record) => static::getUrl('view', ['record' => $record])),
 
                 EditAction::make(),
             ])
@@ -173,9 +173,9 @@ class WorldMatchResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListWorldMatches::route('/'),
-            'edit' => Pages\EditWorldMatch::route('/{record}/edit'),
-            'view-bets' => Pages\ViewMatchBets::route('/{record}/bets'),
+            'index'     => Pages\ListWorldMatches::route('/'),
+            'view'      => Pages\ViewMatchBets::route('/{record}/bets'),
+            'edit'      => Pages\EditWorldMatch::route('/{record}/edit'),
         ];
     }
 }

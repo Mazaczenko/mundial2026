@@ -27,7 +27,7 @@ class Participant extends Authenticatable implements FilamentUser
         'is_admin',
         'paid_entry',
         'eliminated',
-        'sms_notifications',
+        'email_notifications',
     ];
 
     /** @var array<string, string> */
@@ -35,7 +35,7 @@ class Participant extends Authenticatable implements FilamentUser
         'is_admin' => 'boolean',
         'paid_entry' => 'boolean',
         'eliminated' => 'boolean',
-        'sms_notifications' => 'boolean',
+        'email_notifications' => 'boolean',
     ];
 
     protected function password(): Attribute

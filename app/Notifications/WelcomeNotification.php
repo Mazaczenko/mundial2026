@@ -2,6 +2,7 @@
 
 namespace App\Notifications;
 
+use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
 class WelcomeNotification extends Notification
@@ -10,18 +11,20 @@ class WelcomeNotification extends Notification
         private readonly string $password,
     ) {}
 
-    /**
-     * @return list<string>
-     */
+    /** @return list<string> */
     public function via(mixed $notifiable): array
     {
-        return ['sms'];
+        return ['mail'];
     }
 
-    public function toSms(mixed $notifiable): string
+    public function toMail(mixed $notifiable): MailMessage
     {
-        $appUrl = config('app.url');
-
-        return "🏆 Hej! Dołączyłeś do typowania Mundial 2026.\nZaloguj się: {$appUrl}\nTwoje hasło: {$this->password}";
+        return (new MailMessage)
+            ->subject('🏆 Dołączyłeś do typowania Mundial 2026!')
+            ->greeting('Hej ' . $notifiable->name . '!')
+            ->line('Zostałeś dodany do prywatnej ligi typowania Mistrzostw Świata 2026.')
+            ->line('**Twoje hasło:** `' . $this->password . '`')
+            ->action('Zaloguj się i zacznij typować', url('/login'))
+            ->line('Powodzenia! ⚽');
     }
 }

@@ -4,7 +4,7 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\ParticipantResource\Pages;
 use App\Models\Participant;
-use App\Services\SmsService;
+use App\Notifications\WelcomeNotification;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Forms\Form;
@@ -65,8 +65,8 @@ class ParticipantResource extends Resource
                 Toggle::make('paid_entry')
                     ->label('Wpłata 10 zł'),
 
-                Toggle::make('sms_notifications')
-                    ->label('Powiadomienia SMS'),
+                Toggle::make('email_notifications')
+                    ->label('Powiadomienia email'),
 
                 Toggle::make('eliminated')
                     ->label('Wyeliminowany'),
@@ -130,33 +130,28 @@ class ParticipantResource extends Resource
             ->actions([
                 EditAction::make(),
 
-                Action::make('send_password_sms')
-                    ->label('Wyślij hasło SMS')
-                    ->icon('heroicon-o-device-phone-mobile')
+                Action::make('send_welcome_email')
+                    ->label('Wyślij email powitalny')
+                    ->icon('heroicon-o-envelope')
                     ->color('info')
-                    ->visible(fn (Participant $record) => filled($record->phone))
+                    ->visible(fn (Participant $record) => filled($record->email))
                     ->requiresConfirmation()
-                    ->modalHeading('Wyślij SMS z instrukcją logowania')
-                    ->modalDescription(fn (Participant $record) => "Wyślij SMS do {$record->name} ({$record->phone}) z instrukcją, jak uzyskać PIN.")
-                    ->action(function (Participant $record): void {
-                        $smsService = app(SmsService::class);
-                        $message = 'Mundial 2026: Twoj PIN do systemu typowania jest przechowywany przez administratora. Skontaktuj sie z adminem po swoj PIN. Zaloguj sie na: '.config('app.url');
+                    ->modalHeading('Wyślij email powitalny')
+                    ->modalDescription(fn (Participant $record) => "Wyślij email do {$record->name} ({$record->email}) z hasłem tymczasowym.")
+                    ->form([
+                        \Filament\Forms\Components\TextInput::make('temp_password')
+                            ->label('Hasło do wysłania')
+                            ->required()
+                            ->helperText('Wpisz hasło które chcesz wysłać uczestnikowi.'),
+                    ])
+                    ->action(function (Participant $record, array $data): void {
+                        $record->notify(new WelcomeNotification($data['temp_password']));
 
-                        $success = $smsService->send($record->phone, $message);
-
-                        if ($success) {
-                            Notification::make()
-                                ->title('SMS wysłany')
-                                ->body("Wiadomość SMS została wysłana do {$record->name}.")
-                                ->success()
-                                ->send();
-                        } else {
-                            Notification::make()
-                                ->title('Błąd wysyłki SMS')
-                                ->body("Nie udało się wysłać SMS do {$record->name}. Sprawdź logi.")
-                                ->danger()
-                                ->send();
-                        }
+                        Notification::make()
+                            ->title('Email wysłany')
+                            ->body("Email powitalny wysłano do {$record->name}.")
+                            ->success()
+                            ->send();
                     }),
 
                 DeleteAction::make()

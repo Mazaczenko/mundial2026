@@ -11,7 +11,7 @@ class AddParticipantCommand extends Command
     protected $signature = 'mundial:add-participant
                             {name : Imię uczestnika}
                             {--password= : Hasło uczestnika}
-                            {--phone= : Numer telefonu np. +48500123456}
+                            {--email= : Adres email (do powiadomień i logowania admina)}
                             {--admin : Ustaw jako administratora}';
 
     protected $description = 'Dodaj nowego uczestnika do typowania Mundial 2026';
@@ -20,7 +20,7 @@ class AddParticipantCommand extends Command
     {
         $name = $this->argument('name');
         $password = $this->option('password');
-        $phone = $this->option('phone') ?: null;
+        $email = $this->option('email') ?: null;
 
         if (empty($password)) {
             $this->error('Hasło jest wymagane. Użyj --password=HASLO');
@@ -29,17 +29,17 @@ class AddParticipantCommand extends Command
         }
 
         $participant = Participant::create([
-            'name' => $name,
+            'name'     => $name,
             'password' => $password,
-            'phone' => $phone,
+            'email'    => $email,
             'is_admin' => (bool) $this->option('admin'),
         ]);
 
         $this->info("Uczestnik \"{$name}\" został dodany (ID: {$participant->id}).");
 
-        if ($phone !== null) {
+        if ($email !== null) {
             $participant->notify(new WelcomeNotification($password));
-            $this->info("Wysłano SMS powitalny na numer {$phone}.");
+            $this->info("Wysłano email powitalny na adres {$email}.");
         }
 
         return self::SUCCESS;

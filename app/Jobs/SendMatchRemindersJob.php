@@ -27,8 +27,8 @@ class SendMatchRemindersJob implements ShouldQueue
         foreach ($matches as $match) {
             $participants = Participant::query()
                 ->where('eliminated', false)
-                ->where('sms_notifications', true)
-                ->whereNotNull('phone')
+                ->where('email_notifications', true)
+                ->whereNotNull('email')
                 ->whereDoesntHave('bets', fn ($q) => $q->where('match_id', $match->id))
                 ->get();
 

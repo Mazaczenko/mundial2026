@@ -39,9 +39,5 @@ return [
         'key' => env('APIFOOTBALL_KEY'),
     ],
 
-    'smsapi' => [
-        'token' => env('SMSAPI_TOKEN'),
-        'sender' => env('SMSAPI_SENDER', 'MUNDIAL26'),
-    ],
 
 ];

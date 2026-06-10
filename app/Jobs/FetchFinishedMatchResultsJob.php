@@ -27,39 +27,27 @@ class FetchFinishedMatchResultsJob implements ShouldQueue
 
         $fixtures = $footballApi->getFixturesByDate(Carbon::today()->format('Y-m-d'));
 
-        $finishedStatuses = ['FT', 'AET', 'PEN'];
-
         foreach ($fixtures as $fixture) {
-            $apiFixtureId = $fixture['fixture']['id'] ?? null;
-            $shortStatus = $fixture['fixture']['status']['short'] ?? null;
+            $apiId = $fixture['id'] ?? null;
 
-            if ($apiFixtureId === null) {
+            if ($apiId === null || ($fixture['status'] ?? '') !== 'FINISHED') {
                 continue;
             }
 
-            $match = WorldMatch::query()
-                ->where('api_fixture_id', $apiFixtureId)
-                ->first();
+            $match = WorldMatch::where('api_fixture_id', $apiId)->first();
 
             if ($match === null) {
                 continue;
             }
 
-            if (in_array($shortStatus, $finishedStatuses, strict: true)) {
-                $scoreHome = $fixture['score']['fulltime']['home'] ?? null;
-                $scoreAway = $fixture['score']['fulltime']['away'] ?? null;
+            $match->update([
+                'status'     => 'finished',
+                'score_home' => $fixture['score']['fullTime']['home'] ?? null,
+                'score_away' => $fixture['score']['fullTime']['away'] ?? null,
+            ]);
 
-                $match->update([
-                    'status' => 'finished',
-                    'score_home' => $scoreHome,
-                    'score_away' => $scoreAway,
-                ]);
-
-                $match->refresh();
-                $match->load('bets');
-
-                $betService->resolveBets($match);
-            }
+            $match->refresh()->load('bets');
+            $betService->resolveBets($match);
         }
 
         $eliminationService->checkAll();

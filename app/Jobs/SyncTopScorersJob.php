@@ -13,8 +13,15 @@ class SyncTopScorersJob implements ShouldQueue
 
     public function handle(FootballApiService $footballApi): void
     {
+        // football-data.org: scorers array, each: { player: { name, ... }, goals, ... }
         $data = $footballApi->getTopScorers();
 
-        Cache::put('mundial.topscorers', $data, now()->addHours(7));
+        // Normalise to the shape Participant::scorerCorrect() expects: [0]['player']['name']
+        $normalized = array_map(fn ($s) => [
+            'player' => ['name' => $s['player']['name'] ?? ''],
+            'goals'  => $s['goals'] ?? 0,
+        ], $data);
+
+        Cache::put('mundial.topscorers', $normalized, now()->addHours(7));
     }
 }

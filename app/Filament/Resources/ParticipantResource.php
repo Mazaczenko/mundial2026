@@ -41,6 +41,14 @@ class ParticipantResource extends Resource
                     ->required()
                     ->maxLength(100),
 
+                TextInput::make('email')
+                    ->label('E-mail')
+                    ->email()
+                    ->nullable()
+                    ->unique(ignoreRecord: true)
+                    ->maxLength(255)
+                    ->helperText('Wymagany do logowania do panelu admina'),
+
                 TextInput::make('password')
                     ->label('Hasło')
                     ->password()
@@ -76,6 +84,11 @@ class ParticipantResource extends Resource
                     ->label('Imię i nazwisko')
                     ->sortable()
                     ->searchable(),
+
+                TextColumn::make('email')
+                    ->label('E-mail')
+                    ->searchable()
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('points')
                     ->label('Punkty')

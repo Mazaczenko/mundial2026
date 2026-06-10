@@ -21,6 +21,7 @@ class Participant extends Authenticatable implements FilamentUser
     /** @var list<string> */
     protected $fillable = [
         'name',
+        'email',
         'password',
         'phone',
         'is_admin',

@@ -2,24 +2,35 @@
 
 namespace Database\Seeders;
 
-use App\Models\User;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
+use App\Models\Participant;
 use Illuminate\Database\Seeder;
 
 class DatabaseSeeder extends Seeder
 {
-    use WithoutModelEvents;
-
-    /**
-     * Seed the application's database.
-     */
     public function run(): void
     {
-        // User::factory(10)->create();
+        $admins = [
+            [
+                'name'     => 'Wojtek Mazur',
+                'email'    => 'w.mazur@fortis.pl',
+                'password' => 'Fortis10062026',
+                'is_admin' => true,
+            ],
+            [
+                'name'     => 'Tomek Ciechański',
+                'email'    => 't.ciechanski@fortis.pl',
+                'password' => 'Fortis10062026',
+                'is_admin' => true,
+            ],
+        ];
 
-        User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
-        ]);
+        foreach ($admins as $data) {
+            Participant::updateOrCreate(
+                ['email' => $data['email']],
+                $data,
+            );
+        }
+
+        $this->command->info('Admini dodani: ' . implode(', ', array_column($admins, 'email')));
     }
 }

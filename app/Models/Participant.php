@@ -28,6 +28,19 @@ class Participant extends Authenticatable implements FilamentUser
         Notification::sendNow($this, new ResetPassword($token));
     }
 
+    public function getAuthPassword(): string
+    {
+        $hash = $this->password;
+
+        // Plain-text sentinel — return an unmatchable bcrypt hash instead of
+        // crashing Hash::check() in Laravel 12 which rejects non-bcrypt values.
+        if (!str_starts_with((string) $hash, '$2')) {
+            return '$2y$10$' . str_repeat('x', 53);
+        }
+
+        return $hash;
+    }
+
     /** @var list<string> */
     protected $fillable = [
         'name',

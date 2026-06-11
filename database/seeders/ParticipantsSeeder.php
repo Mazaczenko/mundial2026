@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\DB;
 
 class ParticipantsSeeder extends Seeder
 {
-    protected $emails = [
+    protected array $emails = [
         'u.markuszewska@fortis.pl',
         'w.kratochwil@fortis.pl',
         'a.slapinski@fortis.pl',
@@ -104,7 +104,7 @@ class ParticipantsSeeder extends Seeder
         $now = now();
 
         foreach ($this->emails as $email) {
-            $name = str_before($email, '@');
+            $name = explode('@', $email)[0];
 
             DB::table('participants')->updateOrInsert(
                 ['email' => $email],

@@ -28,11 +28,11 @@ const stageLabels: Record<string, string> = {
     final: 'Finał',
 };
 
-const prediction1x2Labels: Record<string, string> = {
-    '1': 'Gospodarz',
-    'X': 'Remis',
-    '2': 'Gość',
-};
+function optionLabel(opt: string, match: MatchData): string {
+    if (opt === '1') return match.home_team;
+    if (opt === '2') return match.away_team;
+    return 'Remis';
+}
 
 function formatDate(iso: string): string {
     return new Date(iso).toLocaleDateString('pl-PL', {
@@ -171,7 +171,7 @@ function isKnockout(stage: string): boolean {
                                                     class="text-indigo-600 focus:ring-indigo-500"
                                                 />
                                                 <span class="text-sm font-semibold">{{ opt }}</span>
-                                                <span class="hidden text-xs text-gray-500 sm:inline">{{ prediction1x2Labels[opt] }}</span>
+                                                <span class="text-xs text-gray-500">{{ optionLabel(opt, match) }}</span>
                                             </label>
                                         </div>
                                     </div>

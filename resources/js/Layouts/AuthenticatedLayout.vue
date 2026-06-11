@@ -9,6 +9,19 @@ import { Link, usePage } from '@inertiajs/vue3';
 
 const showingNavigationDropdown = ref(false);
 const page = usePage();
+
+const isDark = ref(document.documentElement.classList.contains('dark'));
+
+function toggleDark() {
+    isDark.value = !isDark.value;
+    if (isDark.value) {
+        document.documentElement.classList.add('dark');
+        localStorage.setItem('theme', 'dark');
+    } else {
+        document.documentElement.classList.remove('dark');
+        localStorage.setItem('theme', 'light');
+    }
+}
 </script>
 
 <template>
@@ -53,7 +66,23 @@ const page = usePage();
                             </div>
                         </div>
 
-                        <div class="hidden sm:ms-6 sm:flex sm:items-center">
+                        <div class="hidden sm:ms-6 sm:flex sm:items-center gap-2">
+                            <!-- Dark mode toggle -->
+                            <button
+                                @click="toggleDark"
+                                type="button"
+                                class="rounded-md p-2 text-gray-400 transition-colors duration-150 hover:bg-gray-100 hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-200"
+                                :aria-label="isDark ? 'Włącz tryb jasny' : 'Włącz tryb ciemny'"
+                            >
+                                <!-- Sun icon (visible in dark mode) -->
+                                <svg v-if="isDark" class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v2.25m6.364.386-1.591 1.591M21 12h-2.25m-.386 6.364-1.591-1.591M12 18.75V21m-4.773-4.227-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0Z" />
+                                </svg>
+                                <!-- Moon icon (visible in light mode) -->
+                                <svg v-else class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M21.752 15.002A9.72 9.72 0 0 1 18 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 0 0 3 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 0 0 9.002-5.998Z" />
+                                </svg>
+                            </button>
                             <div class="relative ms-3">
                                 <Dropdown align="right" width="48">
                                     <template #trigger>
@@ -80,7 +109,21 @@ const page = usePage();
                         </div>
 
                         <!-- Hamburger -->
-                        <div class="-me-2 flex items-center sm:hidden">
+                        <div class="-me-2 flex items-center gap-1 sm:hidden">
+                            <!-- Dark mode toggle (mobile) -->
+                            <button
+                                @click="toggleDark"
+                                type="button"
+                                class="rounded-md p-2 text-gray-400 transition-colors duration-150 hover:bg-gray-100 hover:text-gray-500 focus:outline-none dark:text-gray-500 dark:hover:bg-gray-900 dark:hover:text-gray-400"
+                                :aria-label="isDark ? 'Włącz tryb jasny' : 'Włącz tryb ciemny'"
+                            >
+                                <svg v-if="isDark" class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v2.25m6.364.386-1.591 1.591M21 12h-2.25m-.386 6.364-1.591-1.591M12 18.75V21m-4.773-4.227-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0Z" />
+                                </svg>
+                                <svg v-else class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M21.752 15.002A9.72 9.72 0 0 1 18 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 0 0 3 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 0 0 9.002-5.998Z" />
+                                </svg>
+                            </button>
                             <button
                                 @click="showingNavigationDropdown = !showingNavigationDropdown"
                                 class="inline-flex items-center justify-center rounded-md p-2 text-gray-400 transition duration-150 ease-in-out hover:bg-gray-100 hover:text-gray-500 focus:bg-gray-100 focus:text-gray-500 focus:outline-none dark:text-gray-500 dark:hover:bg-gray-900 dark:hover:text-gray-400 dark:focus:bg-gray-900 dark:focus:text-gray-400"

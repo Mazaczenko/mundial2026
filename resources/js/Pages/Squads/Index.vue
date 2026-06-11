@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
-import { Head } from '@inertiajs/vue3';
-import { ref, computed } from 'vue';
+import { Head, router } from '@inertiajs/vue3';
+import { ref, watch } from 'vue';
 
 interface Player {
     id: number;
@@ -11,11 +11,30 @@ interface Player {
 
 interface Props {
     squads: Record<string, Record<string, Player[]>>;
+    filters: { search: string };
+    pagination: {
+        current_page: number;
+        last_page: number;
+        total: number;
+    };
 }
 
 const props = defineProps<Props>();
 
-const search = ref('');
+const search = ref(props.filters.search);
+
+let searchTimeout: ReturnType<typeof setTimeout> | null = null;
+
+watch(search, (val) => {
+    if (searchTimeout) clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(() => {
+        router.get(route('squads.index'), { search: val, page: 1 }, { preserveScroll: true, replace: true });
+    }, 350);
+});
+
+function goToPage(page: number) {
+    router.get(route('squads.index'), { search: search.value, page }, { preserveScroll: false });
+}
 
 const positionLabels: Record<string, string> = {
     Goalkeeper: 'Bramkarze',
@@ -25,16 +44,6 @@ const positionLabels: Record<string, string> = {
 };
 
 const positionOrder = ['Goalkeeper', 'Defence', 'Midfield', 'Offence'];
-
-const filteredSquads = computed(() => {
-    const q = search.value.trim().toLowerCase();
-    if (!q) return props.squads;
-    return Object.fromEntries(
-        Object.entries(props.squads).filter(([teamName]) =>
-            teamName.toLowerCase().includes(q)
-        )
-    );
-});
 </script>
 
 <template>
@@ -54,30 +63,26 @@ const filteredSquads = computed(() => {
                         <input
                             v-model="search"
                             type="search"
-                            placeholder="Szukaj drużyny…"
+                            placeholder="Szukaj drużyny lub zawodnika…"
                             class="w-full rounded-lg border border-gray-300 bg-white py-1.5 pl-8 pr-3 text-sm focus:border-indigo-400 focus:outline-none focus:ring-1 focus:ring-indigo-400 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
                         />
                     </div>
                 </div>
 
-                <div v-if="Object.keys(filteredSquads).length === 0" class="py-8 text-center text-sm text-gray-400">
-                    Brak drużyn pasujących do wyszukiwania.
+                <div v-if="Object.keys(squads).length === 0" class="py-8 text-center text-sm text-gray-400">
+                    Brak wyników dla „{{ search }}".
                 </div>
 
                 <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
                     <div
-                        v-for="(positionGroups, teamName) in filteredSquads"
+                        v-for="(positionGroups, teamName) in squads"
                         :key="teamName"
                         class="rounded-lg bg-white p-4 shadow dark:bg-gray-800"
                     >
                         <h2 class="mb-3 text-base font-bold text-gray-900 dark:text-white">{{ teamName }}</h2>
 
-                        <div
-                            v-for="position in positionOrder"
-                            :key="position"
-                            class="mb-2"
-                        >
-                            <template v-if="positionGroups[position] && positionGroups[position].length > 0">
+                        <div v-for="position in positionOrder" :key="position" class="mb-2">
+                            <template v-if="positionGroups[position]?.length">
                                 <div class="mb-1 text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500">
                                     {{ positionLabels[position] }}
                                 </div>
@@ -90,6 +95,27 @@ const filteredSquads = computed(() => {
                                 </div>
                             </template>
                         </div>
+                    </div>
+                </div>
+
+                <!-- Pagination -->
+                <div v-if="pagination.last_page > 1" class="mt-6 flex items-center justify-between">
+                    <p class="text-sm text-gray-500 dark:text-gray-400">
+                        Drużyny: strona {{ pagination.current_page }} z {{ pagination.last_page }} ({{ pagination.total }} łącznie)
+                    </p>
+                    <div class="flex gap-1">
+                        <button
+                            v-for="page in pagination.last_page"
+                            :key="page"
+                            @click="goToPage(page)"
+                            :disabled="page === pagination.current_page"
+                            class="min-w-[2rem] rounded px-2.5 py-1 text-sm font-medium transition-colors"
+                            :class="page === pagination.current_page
+                                ? 'bg-indigo-600 text-white cursor-default'
+                                : 'bg-white text-gray-700 hover:bg-gray-100 shadow-sm dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700'"
+                        >
+                            {{ page }}
+                        </button>
                     </div>
                 </div>
 

@@ -65,7 +65,11 @@ class SyncDataCommand extends Command
     {
         $this->info('Pobieranie wyników rozegranych meczów...');
 
-        $pastMatches = WorldMatch::where('status', '!=', 'finished')
+        $pastMatches = WorldMatch::where(function ($q) {
+                $q->where('status', '!=', 'finished')
+                    ->orWhereNull('score_home')
+                    ->orWhereNull('score_away');
+            })
             ->where('kickoff_at', '<=', Carbon::now()->subMinutes(105))
             ->orderBy('kickoff_at')
             ->get();

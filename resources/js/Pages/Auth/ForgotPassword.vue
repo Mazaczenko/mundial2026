@@ -1,24 +1,22 @@
 <script setup lang="ts">
 import InputError from '@/Components/InputError.vue';
-import { Head, useForm } from '@inertiajs/vue3';
-import { ref } from 'vue';
+import { Head, useForm, usePage } from '@inertiajs/vue3';
+import { computed } from 'vue';
+
+const page = usePage();
+const status = computed(() => (page.props.flash as any)?.status ?? null);
 
 const form = useForm({
     email: '',
-    password: '',
 });
 
-const showPassword = ref(false);
-
 const submit = () => {
-    form.post(route('login.post'), {
-        onFinish: () => form.reset('password'),
-    });
+    form.post(route('password.email'));
 };
 </script>
 
 <template>
-    <Head title="Logowanie — Mundial 2026" />
+    <Head title="Reset hasła — Mundial 2026" />
 
     <div class="login-bg relative flex min-h-dvh flex-col items-center justify-center overflow-hidden px-4 py-12">
 
@@ -33,11 +31,9 @@ const submit = () => {
 
         <!-- Hero header -->
         <div class="relative z-10 mb-10 text-center">
-            <!-- Ball SVG -->
             <div class="ball-float mx-auto mb-4 flex h-20 w-20 items-center justify-center">
                 <svg viewBox="0 0 100 100" class="h-full w-full drop-shadow-[0_0_24px_rgba(34,197,94,0.6)]" aria-hidden="true">
                     <circle cx="50" cy="50" r="47" fill="white" />
-                    <!-- Pentagons -->
                     <polygon points="50,5 62,30 88,30 67,48 75,73 50,56 25,73 33,48 12,30 38,30" fill="#111827" opacity="0.85" />
                     <circle cx="50" cy="50" r="47" fill="none" stroke="#d1d5db" stroke-width="2" />
                 </svg>
@@ -50,32 +46,32 @@ const submit = () => {
             <p class="font-chakra mt-2 text-sm font-medium uppercase tracking-[0.3em] text-green-400/80">
                 FIFA World Cup · Typowanie
             </p>
-
-            <!-- Country flags strip -->
-            <div class="mt-5 flex items-center justify-center gap-1 opacity-60" aria-hidden="true">
-                <span class="flag-chip">🇺🇸</span>
-                <span class="separator">·</span>
-                <span class="flag-chip">🇲🇽</span>
-                <span class="separator">·</span>
-                <span class="flag-chip">🇨🇦</span>
-                <span class="separator">·</span>
-                <span class="flag-chip text-xs font-chakra font-medium tracking-widest text-gray-400 uppercase">USA · Meksyk · Kanada</span>
-            </div>
         </div>
 
-        <!-- Login card -->
+        <!-- Card -->
         <div class="login-card relative z-10 w-full max-w-sm">
             <div class="card-glow" aria-hidden="true" />
 
-            <form @submit.prevent="submit" novalidate class="relative">
-                <div class="mb-2 text-center">
+            <div class="relative">
+                <div class="mb-5 text-center">
                     <p class="font-chakra text-xs font-medium uppercase tracking-widest text-green-400/70">
-                        Zaloguj się do typowania
+                        Resetowanie hasła
                     </p>
                 </div>
 
-                <div class="mt-5 space-y-4">
-                    <!-- Email -->
+                <!-- Status message -->
+                <div
+                    v-if="status"
+                    class="font-chakra mb-5 rounded-lg border border-green-500/30 bg-green-500/10 px-4 py-3 text-sm text-green-400"
+                >
+                    {{ status }}
+                </div>
+
+                <p class="font-chakra mb-5 text-xs leading-relaxed text-gray-400">
+                    Podaj swój adres email, a wyślemy Ci link umożliwiający ustawienie nowego hasła.
+                </p>
+
+                <form @submit.prevent="submit" novalidate>
                     <div>
                         <label for="email" class="font-chakra mb-1.5 block text-xs font-semibold uppercase tracking-widest text-gray-300">
                             Email
@@ -101,76 +97,36 @@ const submit = () => {
                         <InputError :message="form.errors.email" class="mt-1.5 font-chakra text-xs text-red-400" />
                     </div>
 
-                    <!-- Password -->
-                    <div>
-                        <label for="password" class="font-chakra mb-1.5 block text-xs font-semibold uppercase tracking-widest text-gray-300">
-                            Hasło
-                        </label>
-                        <div class="relative">
-                            <span class="pointer-events-none absolute inset-y-0 left-3 flex items-center text-green-500/60" aria-hidden="true">
-                                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                                </svg>
-                            </span>
-                            <input
-                                id="password"
-                                v-model="form.password"
-                                :type="showPassword ? 'text' : 'password'"
-                                autocomplete="current-password"
-                                required
-                                class="field-input pl-9 pr-10"
-                                :class="{ 'field-error': form.errors.password }"
-                                placeholder="••••••••"
-                            />
-                            <button
-                                type="button"
-                                class="absolute inset-y-0 right-3 flex cursor-pointer items-center text-gray-500 transition-colors hover:text-green-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-green-400"
-                                :aria-label="showPassword ? 'Ukryj hasło' : 'Pokaż hasło'"
-                                @click="showPassword = !showPassword"
-                            >
-                                <svg v-if="!showPassword" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                                </svg>
-                                <svg v-else class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
-                                </svg>
-                            </button>
-                        </div>
-                        <InputError :message="form.errors.password" class="mt-1.5 font-chakra text-xs text-red-400" />
-                    </div>
-                </div>
+                    <button
+                        type="submit"
+                        :disabled="form.processing"
+                        class="submit-btn font-russo mt-8 w-full cursor-pointer text-sm uppercase tracking-widest"
+                    >
+                        <span v-if="!form.processing" class="flex items-center justify-center gap-2">
+                            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                            </svg>
+                            Wyślij link resetujący
+                        </span>
+                        <span v-else class="flex items-center justify-center gap-2">
+                            <svg class="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                            </svg>
+                            Wysyłanie...
+                        </span>
+                    </button>
+                </form>
 
-                <!-- Submit -->
-                <button
-                    type="submit"
-                    :disabled="form.processing"
-                    class="submit-btn font-russo mt-8 w-full cursor-pointer text-sm uppercase tracking-widest"
-                >
-                    <span v-if="!form.processing" class="flex items-center justify-center gap-2">
-                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                        </svg>
-                        Wchodzę na boisko
-                    </span>
-                    <span v-else class="flex items-center justify-center gap-2">
-                        <svg class="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24" aria-hidden="true">
-                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
-                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
-                        </svg>
-                        Logowanie...
-                    </span>
-                </button>
-
-                <div class="mt-5 text-center">
+                <div class="mt-6 text-center">
                     <a
-                        :href="route('password.request')"
+                        :href="route('login')"
                         class="font-chakra text-xs font-medium uppercase tracking-widest text-gray-500 transition-colors hover:text-green-400"
                     >
-                        Nie pamiętam hasła
+                        &larr; Wróć do logowania
                     </a>
                 </div>
-            </form>
+            </div>
         </div>
 
         <!-- Footer -->
@@ -186,16 +142,13 @@ const submit = () => {
 .font-russo  { font-family: 'Russo One', sans-serif; }
 .font-chakra { font-family: 'Chakra Petch', sans-serif; }
 
-/* ── Background ── */
 .login-bg {
     background: radial-gradient(ellipse 80% 60% at 50% 0%, #0d3d1a 0%, #071209 55%, #030a04 100%);
 }
 
 .pitch-lines {
     background-image:
-        /* horizontal centre line */
         linear-gradient(to bottom, transparent calc(50% - 0.5px), rgba(255,255,255,0.04) calc(50% - 0.5px), rgba(255,255,255,0.04) calc(50% + 0.5px), transparent calc(50% + 0.5px)),
-        /* vertical stripes (pitch bands) */
         repeating-linear-gradient(
             90deg,
             transparent 0px,
@@ -205,7 +158,6 @@ const submit = () => {
         );
 }
 
-/* Stadium lights */
 .glow {
     position: absolute;
     border-radius: 50%;
@@ -223,7 +175,6 @@ const submit = () => {
     background: radial-gradient(circle, #eab308 0%, transparent 70%);
 }
 
-/* ── Floating ball ── */
 .ball-float {
     animation: float 3.6s ease-in-out infinite;
 }
@@ -232,11 +183,6 @@ const submit = () => {
     50%       { transform: translateY(-10px); }
 }
 
-/* ── Flag chips ── */
-.flag-chip   { font-size: 1.1rem; }
-.separator   { color: #374151; font-size: 0.6rem; }
-
-/* ── Login card ── */
 .login-card {
     background: rgba(7, 18, 9, 0.75);
     backdrop-filter: blur(20px);
@@ -257,7 +203,6 @@ const submit = () => {
     pointer-events: none;
 }
 
-/* ── Inputs ── */
 .field-input {
     display: block;
     width: 100%;
@@ -283,7 +228,6 @@ const submit = () => {
     box-shadow: 0 0 0 3px rgba(248, 113, 113, 0.12);
 }
 
-/* ── Submit button ── */
 .submit-btn {
     position: relative;
     overflow: hidden;

@@ -40,6 +40,14 @@ const page = usePage();
                                 <NavLink :href="route('tiebreaker.show')" :active="route().current('tiebreaker.show')">
                                     Tiebreaker
                                 </NavLink>
+                                <a
+                                    v-if="page.props.auth.user?.is_admin"
+                                    href="/admin"
+                                    target="_blank"
+                                    class="inline-flex items-center gap-1 border-b-2 border-transparent px-1 pt-1 text-sm font-medium leading-5 text-gray-500 transition duration-150 ease-in-out hover:border-gray-300 hover:text-gray-700 focus:outline-none dark:text-gray-400 dark:hover:border-gray-700 dark:hover:text-gray-300"
+                                >
+                                    Panel admina ↗
+                                </a>
                             </div>
                         </div>
 
@@ -107,6 +115,14 @@ const page = usePage();
                         <ResponsiveNavLink :href="route('tiebreaker.show')" :active="route().current('tiebreaker.show')">
                             Tiebreaker
                         </ResponsiveNavLink>
+                        <a
+                            v-if="page.props.auth.user?.is_admin"
+                            href="/admin"
+                            target="_blank"
+                            class="block w-full border-l-4 border-transparent py-2 pe-4 ps-3 text-start text-base font-medium text-gray-600 transition duration-150 ease-in-out hover:border-gray-300 hover:bg-gray-50 hover:text-gray-800 focus:outline-none dark:text-gray-400 dark:hover:border-gray-600 dark:hover:bg-gray-700 dark:hover:text-gray-200"
+                        >
+                            Panel admina ↗
+                        </a>
                     </div>
 
                     <div class="border-t border-gray-200 pb-1 pt-4 dark:border-gray-600">

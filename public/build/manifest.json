@@ -1,0 +1,86 @@
+{
+  "_AuthenticatedLayout.vue_vue_type_script_setup_true_lang-BBrgsZY4.js": {
+    "file": "assets/AuthenticatedLayout.vue_vue_type_script_setup_true_lang-BBrgsZY4.js",
+    "name": "AuthenticatedLayout.vue_vue_type_script_setup_true_lang",
+    "imports": [
+      "resources/js/app.ts"
+    ]
+  },
+  "__plugin-vue_export-helper-DlAUqK2U.js": {
+    "file": "assets/_plugin-vue_export-helper-DlAUqK2U.js",
+    "name": "_plugin-vue_export-helper"
+  },
+  "resources/js/Pages/Auth/Login.vue": {
+    "file": "assets/Login-C2ZRXPwf.js",
+    "name": "Login",
+    "src": "resources/js/Pages/Auth/Login.vue",
+    "isDynamicEntry": true,
+    "imports": [
+      "resources/js/app.ts",
+      "__plugin-vue_export-helper-DlAUqK2U.js"
+    ],
+    "css": [
+      "assets/Login-YTiRdTEz.css"
+    ]
+  },
+  "resources/js/Pages/Bets/Index.vue": {
+    "file": "assets/Index-DCxi5jBg.js",
+    "name": "Index",
+    "src": "resources/js/Pages/Bets/Index.vue",
+    "isDynamicEntry": true,
+    "imports": [
+      "resources/js/app.ts",
+      "_AuthenticatedLayout.vue_vue_type_script_setup_true_lang-BBrgsZY4.js"
+    ]
+  },
+  "resources/js/Pages/Ranking/Index.vue": {
+    "file": "assets/Index-CzzyAWaG.js",
+    "name": "Index",
+    "src": "resources/js/Pages/Ranking/Index.vue",
+    "isDynamicEntry": true,
+    "imports": [
+      "_AuthenticatedLayout.vue_vue_type_script_setup_true_lang-BBrgsZY4.js",
+      "resources/js/app.ts"
+    ]
+  },
+  "resources/js/Pages/Standings/Index.vue": {
+    "file": "assets/Index-tV7w8GOW.js",
+    "name": "Index",
+    "src": "resources/js/Pages/Standings/Index.vue",
+    "isDynamicEntry": true,
+    "imports": [
+      "_AuthenticatedLayout.vue_vue_type_script_setup_true_lang-BBrgsZY4.js",
+      "resources/js/app.ts",
+      "__plugin-vue_export-helper-DlAUqK2U.js"
+    ],
+    "css": [
+      "assets/Index-B0brutkM.css"
+    ]
+  },
+  "resources/js/Pages/Tiebreaker/Show.vue": {
+    "file": "assets/Show-Bv4ihZAz.js",
+    "name": "Show",
+    "src": "resources/js/Pages/Tiebreaker/Show.vue",
+    "isDynamicEntry": true,
+    "imports": [
+      "resources/js/app.ts",
+      "_AuthenticatedLayout.vue_vue_type_script_setup_true_lang-BBrgsZY4.js"
+    ]
+  },
+  "resources/js/app.ts": {
+    "file": "assets/app-DPdKFtZI.js",
+    "name": "app",
+    "src": "resources/js/app.ts",
+    "isEntry": true,
+    "dynamicImports": [
+      "resources/js/Pages/Auth/Login.vue",
+      "resources/js/Pages/Bets/Index.vue",
+      "resources/js/Pages/Ranking/Index.vue",
+      "resources/js/Pages/Standings/Index.vue",
+      "resources/js/Pages/Tiebreaker/Show.vue"
+    ],
+    "css": [
+      "assets/app-BymbJT0o.css"
+    ]
+  }
+}

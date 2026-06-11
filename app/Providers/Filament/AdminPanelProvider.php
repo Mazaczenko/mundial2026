@@ -44,7 +44,7 @@ class AdminPanelProvider extends PanelProvider
                 NavigationItem::make('Widok gracza')
                     ->url('/bets')
                     ->icon('heroicon-o-arrow-top-right-on-square')
-                    ->openUrlInNewTab()
+
                     ->sort(999),
             ])
             ->middleware([

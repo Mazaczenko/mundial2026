@@ -25,14 +25,14 @@ class BetController extends Controller
         /** @var Participant $user */
         $user = Auth::user();
 
-        $matches = WorldMatch::query()
+        $paginator = WorldMatch::query()
             ->with([
                 'bets' => fn ($q) => $q->with('participant:id,name'),
             ])
             ->orderBy('kickoff_at')
-            ->get();
+            ->paginate(15);
 
-        $matchesByDate = $matches->map(function (WorldMatch $match) use ($user) {
+        $matchesByDate = $paginator->getCollection()->map(function (WorldMatch $match) use ($user) {
             $myBet = $match->bets->firstWhere('participant_id', $user->id);
             $canBet = $match->canBet();
             $isVisible = ! $canBet; // others' bets visible after betting deadline
@@ -77,6 +77,13 @@ class BetController extends Controller
 
         return Inertia::render('Bets/Index', [
             'matchesByDate' => $matchesByDate,
+            'pagination' => [
+                'current_page' => $paginator->currentPage(),
+                'last_page' => $paginator->lastPage(),
+                'total' => $paginator->total(),
+                'from' => $paginator->firstItem(),
+                'to' => $paginator->lastItem(),
+            ],
             'participant' => $user,
         ]);
     }

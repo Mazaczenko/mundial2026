@@ -1,11 +1,18 @@
 <script setup lang="ts">
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
-import { Head, useForm } from '@inertiajs/vue3';
+import { Head, useForm, router } from '@inertiajs/vue3';
 import { ref } from 'vue';
 import type { MatchData } from '@/types';
 
 interface Props {
     matchesByDate: Record<string, MatchData[]>;
+    pagination: {
+        current_page: number;
+        last_page: number;
+        total: number;
+        from: number | null;
+        to: number | null;
+    };
     participant: {
         id: number;
         name: string;
@@ -68,10 +75,14 @@ function getOrCreateForm(match: MatchData) {
 function submitBet(match: MatchData) {
     const form = getOrCreateForm(match);
     if (match.my_bet) {
-        form.put(route('bets.update', match.my_bet.id));
+        form.put(route('bets.update', match.my_bet.id), { preserveScroll: true });
     } else {
-        form.post(route('bets.store'));
+        form.post(route('bets.store'), { preserveScroll: true });
     }
+}
+
+function goToPage(page: number) {
+    router.get(route('bets.index'), { page }, { preserveScroll: false });
 }
 
 function isKnockout(stage: string): boolean {
@@ -247,6 +258,27 @@ function isKnockout(stage: string): boolean {
 
                 <div v-if="Object.keys(matchesByDate).length === 0" class="rounded-lg bg-white p-8 text-center text-gray-500 shadow dark:bg-gray-800">
                     Brak meczów do wyświetlenia. Admin musi zaimportować terminarz (<code>mundial:import-fixtures</code>).
+                </div>
+
+                <!-- Pagination -->
+                <div v-if="pagination.last_page > 1" class="mt-6 flex items-center justify-between">
+                    <p class="text-sm text-gray-500 dark:text-gray-400">
+                        Mecze {{ pagination.from }}–{{ pagination.to }} z {{ pagination.total }}
+                    </p>
+                    <div class="flex gap-1">
+                        <button
+                            v-for="page in pagination.last_page"
+                            :key="page"
+                            @click="goToPage(page)"
+                            :disabled="page === pagination.current_page"
+                            class="min-w-[2rem] rounded px-2.5 py-1 text-sm font-medium transition-colors"
+                            :class="page === pagination.current_page
+                                ? 'bg-indigo-600 text-white cursor-default'
+                                : 'bg-white text-gray-700 hover:bg-gray-100 shadow-sm dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700'"
+                        >
+                            {{ page }}
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>

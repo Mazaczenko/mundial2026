@@ -30,19 +30,23 @@ class SquadController extends Controller
         $page = min($page, $lastPage);
         $teamNames = $teamsQuery->slice(($page - 1) * self::PER_PAGE, self::PER_PAGE)->values();
 
-        $squads = Player::whereIn('team_name', $teamNames)
+        $players = Player::whereIn('team_name', $teamNames)
             ->when($search, fn ($q) => $q->where(fn ($inner) => $inner
                 ->where('team_name', 'like', "%{$search}%")
                 ->orWhere('name', 'like', "%{$search}%")
             ))
             ->orderBy('team_name')
             ->orderByRaw("FIELD(position,'Goalkeeper','Defence','Midfield','Offence')")
-            ->get()
-            ->groupBy('team_name')
-            ->map(fn ($players) => $players->groupBy('position'));
+            ->get();
+
+        $crests = $players->groupBy('team_name')->map(fn ($g) => $g->first()->team_crest);
+
+        $squads = $players->groupBy('team_name')
+            ->map(fn ($teamPlayers) => $teamPlayers->groupBy('position'));
 
         return Inertia::render('Squads/Index', [
             'squads' => $squads,
+            'crests' => $crests,
             'filters' => ['search' => $search],
             'pagination' => [
                 'current_page' => $page,

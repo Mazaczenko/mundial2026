@@ -11,6 +11,7 @@ interface Player {
 
 interface Props {
     squads: Record<string, Record<string, Player[]>>;
+    crests: Record<string, string | null>;
     filters: { search: string };
     pagination: {
         current_page: number;
@@ -79,7 +80,10 @@ const positionOrder = ['Goalkeeper', 'Defence', 'Midfield', 'Offence'];
                         :key="teamName"
                         class="rounded-lg bg-white p-4 shadow dark:bg-gray-800"
                     >
-                        <h2 class="mb-3 text-base font-bold text-gray-900 dark:text-white">{{ teamName }}</h2>
+                        <div class="mb-3 flex items-center gap-2">
+                            <img v-if="crests[teamName]" :src="crests[teamName]!" :alt="teamName" class="h-7 w-7 object-contain" />
+                            <h2 class="text-base font-bold text-gray-900 dark:text-white">{{ teamName }}</h2>
+                        </div>
 
                         <div v-for="position in positionOrder" :key="position" class="mb-2">
                             <template v-if="positionGroups[position]?.length">

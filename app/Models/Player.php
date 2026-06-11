@@ -14,6 +14,7 @@ class Player extends Model
         'position',
         'team_name',
         'api_team_id',
+        'team_crest',
     ];
 
     public function goals(): HasMany

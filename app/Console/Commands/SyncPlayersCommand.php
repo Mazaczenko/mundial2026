@@ -33,6 +33,7 @@ class SyncPlayersCommand extends Command
                         'position' => $player['position'] ?? null,
                         'team_name' => $team['name'],
                         'api_team_id' => $team['id'],
+                        'team_crest' => $team['crest'] ?? null,
                     ]
                 );
                 $synced++;

@@ -38,24 +38,21 @@ class RankingService
             ];
         });
 
-        // Sort active participants first, then eliminated
-        $active = $ranked->where('eliminated', false)->sortByDesc(function ($p) {
-            return [
-                $p['points'],
-                $p['exact_scores'],
-                $p['group_correct'],
-                (int) $p['scorer_correct'],
-            ];
-        })->values();
+        $sortFn = function ($a, $b) {
+            foreach (['points', 'exact_scores', 'group_correct'] as $key) {
+                if ($b[$key] !== $a[$key]) return $b[$key] <=> $a[$key];
+            }
+            if ($b['scorer_correct'] !== $a['scorer_correct']) {
+                return (int) $b['scorer_correct'] <=> (int) $a['scorer_correct'];
+            }
+            return strcoll($a['name'], $b['name']);
+        };
 
-        $eliminated = $ranked->where('eliminated', true)->sortByDesc(function ($p) {
-            return [
-                $p['points'],
-                $p['exact_scores'],
-                $p['group_correct'],
-                (int) $p['scorer_correct'],
-            ];
-        })->values();
+        $active = $ranked->where('eliminated', false)
+            ->values()->sort($sortFn)->values();
+
+        $eliminated = $ranked->where('eliminated', true)
+            ->values()->sort($sortFn)->values();
 
         return $active->concat($eliminated);
     }

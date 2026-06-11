@@ -70,7 +70,6 @@ const visibleStandings = computed(() =>
                         <table class="w-full">
                             <thead>
                                 <tr class="border-b border-gray-100 bg-gray-50 text-xs font-semibold uppercase tracking-wide text-gray-400 dark:border-gray-700 dark:bg-gray-900">
-                                    <th class="px-4 py-2.5 text-left w-6">#</th>
                                     <th class="px-4 py-2.5 text-left">Drużyna</th>
                                     <th class="px-3 py-2.5 text-center" title="Mecze">M</th>
                                     <th class="px-3 py-2.5 text-center" title="Wygrane">W</th>
@@ -87,7 +86,6 @@ const visibleStandings = computed(() =>
                                     class="transition-colors hover:bg-gray-50 dark:hover:bg-gray-700/50"
                                     :class="idx < 2 ? 'bg-green-50 dark:bg-green-900/10' : ''"
                                 >
-                                    <td class="px-4 py-3 text-sm text-gray-400 font-medium">{{ idx + 1 }}</td>
                                     <td class="px-4 py-3">
                                         <div class="flex items-center gap-2">
                                             <img v-if="team.team_flag" :src="team.team_flag" class="h-5 w-7 flex-shrink-0 object-contain" :alt="team.team_name" />

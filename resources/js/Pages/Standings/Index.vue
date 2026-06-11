@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
+import { teamCode } from '@/utils/teamCode';
 import { Head } from '@inertiajs/vue3';
 import { ref, computed } from 'vue';
 import type { GroupStanding } from '@/types';
@@ -88,8 +89,8 @@ const visibleStandings = computed(() =>
                                     <td class="px-4 py-3 text-sm text-gray-400 font-medium">{{ idx + 1 }}</td>
                                     <td class="px-4 py-3">
                                         <div class="flex items-center gap-2">
-                                            <img v-if="team.team_flag" :src="team.team_flag" class="h-5 w-7 object-contain flex-shrink-0" :alt="team.team_name" />
-                                            <span class="text-sm font-semibold text-gray-900 dark:text-white">{{ team.team_name }}</span>
+                                            <img v-if="team.team_flag" :src="team.team_flag" class="h-5 w-7 flex-shrink-0 object-contain" :alt="team.team_name" />
+                                            <abbr class="cursor-default text-sm font-semibold text-gray-900 no-underline dark:text-white" :title="team.team_name">{{ teamCode(team.team_name) }}</abbr>
                                         </div>
                                     </td>
                                     <td class="px-3 py-3 text-center text-sm text-gray-600 dark:text-gray-400">{{ team.played }}</td>

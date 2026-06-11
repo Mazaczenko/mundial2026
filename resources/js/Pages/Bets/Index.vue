@@ -34,6 +34,8 @@ function optionLabel(opt: string, match: MatchData): string {
     return 'Remis';
 }
 
+import { teamCode } from '@/utils/teamCode';
+
 function formatDate(iso: string): string {
     return new Date(iso).toLocaleDateString('pl-PL', {
         weekday: 'long',
@@ -121,12 +123,12 @@ function isKnockout(stage: string): boolean {
                                     </span>
                                 </div>
 
-                                <div class="mt-3 flex items-center justify-between gap-2">
+                                <div class="mt-3 grid items-center gap-2" style="grid-template-columns: 1fr 5rem 1fr">
                                     <!-- Home team -->
-                                    <div class="flex flex-1 flex-col items-center text-center">
+                                    <div class="flex min-w-0 flex-col items-center text-center">
                                         <span class="text-3xl" v-if="match.home_team_flag && match.home_team_flag.length <= 4">{{ match.home_team_flag }}</span>
                                         <img v-else-if="match.home_team_flag" :src="match.home_team_flag" class="h-8 w-12 object-contain" :alt="match.home_team" />
-                                        <span class="mt-1 text-sm font-medium text-gray-900 dark:text-white">{{ match.home_team }}</span>
+                                        <abbr class="mt-1 cursor-default text-sm font-bold tracking-wide text-gray-900 no-underline dark:text-white" :title="match.home_team">{{ teamCode(match.home_team) }}</abbr>
                                     </div>
 
                                     <!-- Score / VS -->
@@ -144,10 +146,10 @@ function isKnockout(stage: string): boolean {
                                     </div>
 
                                     <!-- Away team -->
-                                    <div class="flex flex-1 flex-col items-center text-center">
+                                    <div class="flex min-w-0 flex-col items-center text-center">
                                         <span class="text-3xl" v-if="match.away_team_flag && match.away_team_flag.length <= 4">{{ match.away_team_flag }}</span>
                                         <img v-else-if="match.away_team_flag" :src="match.away_team_flag" class="h-8 w-12 object-contain" :alt="match.away_team" />
-                                        <span class="mt-1 text-sm font-medium text-gray-900 dark:text-white">{{ match.away_team }}</span>
+                                        <abbr class="mt-1 cursor-default text-sm font-bold tracking-wide text-gray-900 no-underline dark:text-white" :title="match.away_team">{{ teamCode(match.away_team) }}</abbr>
                                     </div>
                                 </div>
                             </div>
@@ -170,8 +172,10 @@ function isKnockout(stage: string): boolean {
                                                     v-model="getOrCreateForm(match).prediction_1x2"
                                                     class="text-indigo-600 focus:ring-indigo-500"
                                                 />
-                                                <span class="text-sm font-semibold">{{ opt }}</span>
-                                                <span class="text-xs text-gray-500">{{ optionLabel(opt, match) }}</span>
+                                                <span class="text-sm font-semibold text-gray-700 dark:text-gray-200">{{ opt }}</span>
+                                                <abbr class="cursor-default text-xs text-gray-500 no-underline" :title="optionLabel(opt, match)">
+                                                    {{ opt === 'X' ? 'Remis' : teamCode(optionLabel(opt, match)) }}
+                                                </abbr>
                                             </label>
                                         </div>
                                     </div>

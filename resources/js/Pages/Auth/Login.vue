@@ -4,7 +4,7 @@ import { Head, useForm } from '@inertiajs/vue3';
 import { ref } from 'vue';
 
 const form = useForm({
-    name: '',
+    email: '',
     password: '',
 });
 
@@ -75,30 +75,30 @@ const submit = () => {
                 </div>
 
                 <div class="mt-5 space-y-4">
-                    <!-- Name -->
+                    <!-- Email -->
                     <div>
-                        <label for="name" class="font-chakra mb-1.5 block text-xs font-semibold uppercase tracking-widest text-gray-300">
-                            Imię
+                        <label for="email" class="font-chakra mb-1.5 block text-xs font-semibold uppercase tracking-widest text-gray-300">
+                            Email
                         </label>
                         <div class="relative">
                             <span class="pointer-events-none absolute inset-y-0 left-3 flex items-center text-green-500/60" aria-hidden="true">
                                 <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207" />
                                 </svg>
                             </span>
                             <input
-                                id="name"
-                                v-model="form.name"
-                                type="text"
-                                autocomplete="username"
+                                id="email"
+                                v-model="form.email"
+                                type="email"
+                                autocomplete="email"
                                 autofocus
                                 required
                                 class="field-input pl-9"
-                                :class="{ 'field-error': form.errors.name }"
-                                placeholder="Twoje imię"
+                                :class="{ 'field-error': form.errors.email }"
+                                placeholder="twoj@email.pl"
                             />
                         </div>
-                        <InputError :message="form.errors.name" class="mt-1.5 font-chakra text-xs text-red-400" />
+                        <InputError :message="form.errors.email" class="mt-1.5 font-chakra text-xs text-red-400" />
                     </div>
 
                     <!-- Password -->

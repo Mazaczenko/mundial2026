@@ -34,3 +34,4 @@ class DatabaseSeeder extends Seeder
         $this->command->info('Admini dodani: ' . implode(', ', array_column($admins, 'email')));
     }
 }
+

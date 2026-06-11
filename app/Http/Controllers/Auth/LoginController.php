@@ -19,8 +19,8 @@ class LoginController extends Controller
 
     public function login(LoginRequest $request): RedirectResponse
     {
-        if (! Auth::attempt(['name' => $request->name, 'password' => $request->password])) {
-            return back()->withErrors(['name' => 'Nieprawidłowe imię lub hasło']);
+        if (! Auth::attempt(['email' => $request->email, 'password' => $request->password])) {
+            return back()->withErrors(['email' => 'Nieprawidłowy email lub hasło']);
         }
 
         $request->session()->regenerate();

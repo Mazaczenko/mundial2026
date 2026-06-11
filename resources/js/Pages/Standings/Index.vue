@@ -66,6 +66,7 @@ const visibleStandings = computed(() =>
                         <div class="bg-indigo-600 px-4 py-2.5">
                             <h2 class="font-bold text-white tracking-wide">Grupa {{ groupName }}</h2>
                         </div>
+                        <div class="overflow-x-auto">
                         <table class="w-full">
                             <thead>
                                 <tr class="border-b border-gray-100 bg-gray-50 text-xs font-semibold uppercase tracking-wide text-gray-400 dark:border-gray-700 dark:bg-gray-900">
@@ -102,6 +103,7 @@ const visibleStandings = computed(() =>
                                 </tr>
                             </tbody>
                         </table>
+                        </div>
                     </div>
                 </div>
 

@@ -139,6 +139,26 @@ function isKnockout(stage: string): boolean {
                                                 {{ match.score_home }} : {{ match.score_away }}
                                             </div>
                                             <div class="mt-1 text-xs text-gray-500">Wynik końcowy</div>
+                                            <div v-if="match.goals.length > 0" class="mt-2 grid grid-cols-2 gap-x-3 text-xs text-gray-400 dark:text-gray-500">
+                                                <div class="text-right space-y-0.5">
+                                                    <div
+                                                        v-for="(goal, i) in match.goals.filter(g => g.team_side === 'home')"
+                                                        :key="i"
+                                                    >
+                                                        <span v-if="goal.minute">{{ goal.minute }}'</span>
+                                                        {{ goal.player_name }}<span v-if="goal.own_goal"> (og)</span>
+                                                    </div>
+                                                </div>
+                                                <div class="text-left space-y-0.5">
+                                                    <div
+                                                        v-for="(goal, i) in match.goals.filter(g => g.team_side === 'away')"
+                                                        :key="i"
+                                                    >
+                                                        <span v-if="goal.minute">{{ goal.minute }}'</span>
+                                                        {{ goal.player_name }}<span v-if="goal.own_goal"> (og)</span>
+                                                    </div>
+                                                </div>
+                                            </div>
                                         </template>
                                         <template v-else>
                                             <div class="text-xl font-light text-gray-400">vs</div>

@@ -36,6 +36,12 @@ export interface MatchData {
     can_bet: boolean;
     my_bet: Bet | null;
     others_bets: OtherBet[];
+    goals: Array<{
+        player_name: string;
+        team_side: 'home' | 'away';
+        minute: number | null;
+        own_goal: boolean;
+    }>;
 }
 
 export interface RankingEntry {

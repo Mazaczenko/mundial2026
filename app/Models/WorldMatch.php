@@ -36,6 +36,11 @@ class WorldMatch extends Model
         return $this->hasMany(Bet::class, 'match_id');
     }
 
+    public function goals(): HasMany
+    {
+        return $this->hasMany(MatchGoal::class);
+    }
+
     public function result1x2(): ?string
     {
         if ($this->status !== 'finished') {

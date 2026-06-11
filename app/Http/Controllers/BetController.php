@@ -28,6 +28,7 @@ class BetController extends Controller
         $paginator = WorldMatch::query()
             ->with([
                 'bets' => fn ($q) => $q->with('participant:id,name'),
+                'goals' => fn ($q) => $q->with('player')->orderBy('minute'),
             ])
             ->orderBy('kickoff_at')
             ->paginate(15);
@@ -68,6 +69,12 @@ class BetController extends Controller
                     'is_correct' => $myBet->is_correct,
                 ] : null,
                 'others_bets' => $othersBets,
+                'goals' => $match->goals->map(fn ($g) => [
+                    'player_name' => $g->player_name,
+                    'team_side' => $g->team_side,
+                    'minute' => $g->minute,
+                    'own_goal' => $g->own_goal,
+                ])->values(),
             ];
         })->groupBy(function ($match) {
             return Carbon::parse($match['kickoff_at'])

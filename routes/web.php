@@ -5,6 +5,7 @@ use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\ResetPasswordController;
 use App\Http\Controllers\BetController;
 use App\Http\Controllers\RankingController;
+use App\Http\Controllers\SquadController;
 use App\Http\Controllers\StandingsController;
 use App\Http\Controllers\TiebreakerController;
 use Illuminate\Support\Facades\Route;
@@ -29,4 +30,5 @@ Route::middleware('auth')->group(function () {
     Route::get('/standings', [StandingsController::class, 'index'])->name('standings.index');
     Route::get('/tiebreaker', [TiebreakerController::class, 'show'])->name('tiebreaker.show');
     Route::post('/tiebreaker', [TiebreakerController::class, 'store'])->name('tiebreaker.store');
+    Route::get('/squads', [SquadController::class, 'index'])->name('squads.index');
 });

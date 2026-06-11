@@ -40,6 +40,9 @@ const page = usePage();
                                 <NavLink :href="route('tiebreaker.show')" :active="route().current('tiebreaker.show')">
                                     Tiebreaker
                                 </NavLink>
+                                <NavLink :href="route('squads.index')" :active="route().current('squads.index')">
+                                    Składy
+                                </NavLink>
                                 <a
                                     v-if="page.props.auth.user?.is_admin"
                                     href="/admin"
@@ -113,6 +116,9 @@ const page = usePage();
                         </ResponsiveNavLink>
                         <ResponsiveNavLink :href="route('tiebreaker.show')" :active="route().current('tiebreaker.show')">
                             Tiebreaker
+                        </ResponsiveNavLink>
+                        <ResponsiveNavLink :href="route('squads.index')" :active="route().current('squads.index')">
+                            Składy
                         </ResponsiveNavLink>
                         <a
                             v-if="page.props.auth.user?.is_admin"

@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
-import { Head, useForm, usePage } from '@inertiajs/vue3';
-import { ref, computed } from 'vue';
-import type { MatchData, PageProps } from '@/types';
+import { Head, useForm } from '@inertiajs/vue3';
+import { ref } from 'vue';
+import type { MatchData } from '@/types';
 
 interface Props {
     matchesByDate: Record<string, MatchData[]>;
@@ -15,9 +15,6 @@ interface Props {
 }
 
 const props = defineProps<Props>();
-const page = usePage<PageProps>();
-
-const flash = computed(() => page.props.flash);
 
 const stageLabels: Record<string, string> = {
     group: 'Faza grupowa',
@@ -89,14 +86,7 @@ function isKnockout(stage: string): boolean {
         <div class="py-6">
             <div class="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
 
-                <div v-if="flash.success" class="mb-4 rounded-md bg-green-50 p-4 text-sm text-green-800 dark:bg-green-900/30 dark:text-green-300">
-                    {{ flash.success }}
-                </div>
-                <div v-if="flash.error" class="mb-4 rounded-md bg-red-50 p-4 text-sm text-red-800 dark:bg-red-900/30 dark:text-red-300">
-                    {{ flash.error }}
-                </div>
-
-                <div v-if="participant.eliminated" class="mb-4 rounded-md bg-orange-50 border border-orange-200 p-4 text-sm text-orange-800 dark:bg-orange-900/20 dark:text-orange-300">
+<div v-if="participant.eliminated" class="mb-4 rounded-md bg-orange-50 border border-orange-200 p-4 text-sm text-orange-800 dark:bg-orange-900/20 dark:text-orange-300">
                     Zostałeś wyeliminowany z oficjalnego rankingu (3 nieoobstawione mecze). Możesz nadal typować dla zabawy.
                 </div>
 

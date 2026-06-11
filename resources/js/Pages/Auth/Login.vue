@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import InputError from '@/Components/InputError.vue';
+import PwaInstallBanner from '@/Components/PwaInstallBanner.vue';
 import { Head, useForm } from '@inertiajs/vue3';
 import { ref } from 'vue';
 
@@ -19,6 +20,7 @@ const submit = () => {
 
 <template>
     <Head title="Logowanie — Mundial 2026" />
+    <PwaInstallBanner />
 
     <div class="login-bg relative flex min-h-dvh flex-col items-center justify-center overflow-hidden px-4 py-12">
 

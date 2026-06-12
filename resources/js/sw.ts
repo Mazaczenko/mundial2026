@@ -18,7 +18,7 @@ self.addEventListener('push', (event: PushEvent) => {
             badge: '/favicon-32x32.png',
             data: { url: data.url ?? '/bets' },
             vibrate: [200, 100, 200],
-        })
+        } as NotificationOptions)
     );
 });
 

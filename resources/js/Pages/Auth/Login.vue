@@ -177,7 +177,7 @@ const submit = () => {
 
         <!-- Footer -->
         <p class="font-chakra relative z-10 mt-10 text-center text-xs tracking-widest text-gray-600 uppercase">
-            Fortis &copy; 2026 · Prywatna liga typowania
+            MUNDIAL &copy; 2026 · Prywatna liga typowania
         </p>
     </div>
 </template>

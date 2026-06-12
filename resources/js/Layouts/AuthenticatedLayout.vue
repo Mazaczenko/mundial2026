@@ -14,11 +14,11 @@ const page = usePage();
 const pushSupported = typeof window !== 'undefined' && 'serviceWorker' in navigator && 'PushManager' in window;
 const pushEnabled = ref(false);
 
-function urlBase64ToUint8Array(base64: string): Uint8Array {
+function urlBase64ToUint8Array(base64: string): Uint8Array<ArrayBuffer> {
     const padding = '='.repeat((4 - (base64.length % 4)) % 4);
     const b64 = (base64 + padding).replace(/-/g, '+').replace(/_/g, '/');
     const raw = atob(b64);
-    return Uint8Array.from([...raw].map(c => c.charCodeAt(0)));
+    return Uint8Array.from([...raw].map(c => c.charCodeAt(0))) as Uint8Array<ArrayBuffer>;
 }
 
 async function checkPushStatus() {

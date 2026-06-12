@@ -124,7 +124,7 @@ function isKnockout(stage: string): boolean {
                                     </span>
                                 </div>
 
-                                <div class="mt-3 grid items-center gap-2" style="grid-template-columns: 1fr 5rem 1fr">
+                                <div class="mt-3 grid items-start gap-2" style="grid-template-columns: 1fr 5rem 1fr">
                                     <!-- Home team -->
                                     <div class="flex min-w-0 flex-col items-center text-center">
                                         <span class="text-3xl" v-if="match.home_team_flag && match.home_team_flag.length <= 4">{{ match.home_team_flag }}</span>
@@ -139,26 +139,6 @@ function isKnockout(stage: string): boolean {
                                                 {{ match.score_home }} : {{ match.score_away }}
                                             </div>
                                             <div class="mt-1 text-xs text-gray-500">Wynik końcowy</div>
-                                            <div v-if="match.goals.length > 0" class="mt-2 grid grid-cols-2 gap-x-3 text-xs text-gray-400 dark:text-gray-500">
-                                                <div class="text-right space-y-0.5">
-                                                    <div
-                                                        v-for="(goal, i) in match.goals.filter(g => g.team_side === 'home')"
-                                                        :key="i"
-                                                    >
-                                                        <span v-if="goal.minute">{{ goal.minute }}'</span>
-                                                        {{ goal.player_name }}<span v-if="goal.own_goal"> (og)</span>
-                                                    </div>
-                                                </div>
-                                                <div class="text-left space-y-0.5">
-                                                    <div
-                                                        v-for="(goal, i) in match.goals.filter(g => g.team_side === 'away')"
-                                                        :key="i"
-                                                    >
-                                                        <span v-if="goal.minute">{{ goal.minute }}'</span>
-                                                        {{ goal.player_name }}<span v-if="goal.own_goal"> (og)</span>
-                                                    </div>
-                                                </div>
-                                            </div>
                                         </template>
                                         <template v-else>
                                             <div class="text-xl font-light text-gray-400">vs</div>
@@ -171,6 +151,27 @@ function isKnockout(stage: string): boolean {
                                         <span class="text-3xl" v-if="match.away_team_flag && match.away_team_flag.length <= 4">{{ match.away_team_flag }}</span>
                                         <img v-else-if="match.away_team_flag" :src="match.away_team_flag" class="h-8 w-12 object-contain" :alt="match.away_team" />
                                         <abbr class="mt-1 cursor-default text-sm font-bold tracking-wide text-gray-900 no-underline dark:text-white" :title="match.away_team">{{ teamCode(match.away_team) }}</abbr>
+                                    </div>
+                                </div>
+
+                                <!-- Goals row -->
+                                <div
+                                    v-if="match.status === 'finished' && match.goals.length > 0"
+                                    class="mt-2 grid gap-x-2 text-xs text-gray-400 dark:text-gray-500"
+                                    style="grid-template-columns: 1fr 5rem 1fr"
+                                >
+                                    <div class="space-y-0.5 text-right">
+                                        <div v-for="(goal, i) in match.goals.filter(g => g.team_side === 'home')" :key="i">
+                                            {{ goal.player_name }}<span v-if="goal.own_goal"> (og)</span>
+                                            <span v-if="goal.minute" class="ml-1 tabular-nums text-gray-300 dark:text-gray-600">{{ goal.minute }}'</span>
+                                        </div>
+                                    </div>
+                                    <div></div>
+                                    <div class="space-y-0.5 text-left">
+                                        <div v-for="(goal, i) in match.goals.filter(g => g.team_side === 'away')" :key="i">
+                                            <span v-if="goal.minute" class="mr-1 tabular-nums text-gray-300 dark:text-gray-600">{{ goal.minute }}'</span>
+                                            {{ goal.player_name }}<span v-if="goal.own_goal"> (og)</span>
+                                        </div>
                                     </div>
                                 </div>
                             </div>

@@ -16,7 +16,7 @@ class TiebreakerController extends Controller
     // Piątek 12.06.2026 23:59 czasu warszawskiego (CEST = UTC+2)
     public const DEADLINE = '2026-06-12 21:59:59';
 
-    private const ALLOWED = ['m.procki', 'm.wawer', 'k.sochacki'];
+    private const ALLOWED = ['m.procki', 'm.wawer', 'k.sochacki', 'p.wronowski'];
 
     public function show(): Response
     {

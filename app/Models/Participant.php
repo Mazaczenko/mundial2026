@@ -88,12 +88,12 @@ class Participant extends Authenticatable implements FilamentUser
 
     public function missedMatchesCount(): int
     {
-        $finishedCount = WorldMatch::query()->finished()->count();
-        $bettedFinishedCount = $this->bets()
-            ->whereHas('match', fn ($q) => $q->finished())
+        $pastCount = WorldMatch::where('kickoff_at', '<=', \Illuminate\Support\Carbon::now()->subHour())->count();
+        $bettedCount = $this->bets()
+            ->whereHas('match', fn ($q) => $q->where('kickoff_at', '<=', \Illuminate\Support\Carbon::now()->subHour()))
             ->count();
 
-        return $finishedCount - $bettedFinishedCount;
+        return $pastCount - $bettedCount;
     }
 
     public function exactScoreCount(): int

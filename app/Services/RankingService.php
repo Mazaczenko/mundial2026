@@ -39,7 +39,7 @@ class RankingService
         });
 
         $sortFn = function ($a, $b) {
-            foreach (['points', 'exact_scores', 'group_correct'] as $key) {
+            foreach (['points', 'bets_count', 'exact_scores', 'group_correct'] as $key) {
                 if ($b[$key] !== $a[$key]) return $b[$key] <=> $a[$key];
             }
             if ($b['scorer_correct'] !== $a['scorer_correct']) {

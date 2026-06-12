@@ -14,12 +14,13 @@ return new class extends Migration
         Schema::create('push_subscriptions', function (Blueprint $table) {
             $table->id();
             $table->foreignId('participant_id')->constrained()->cascadeOnDelete();
-            $table->string('endpoint', 1000);
+            $table->text('endpoint');
+            $table->string('endpoint_hash');
             $table->string('public_key');
             $table->string('auth_token');
             $table->timestamps();
 
-            $table->unique(['participant_id', 'endpoint'], 'push_participant_endpoint');
+            $table->unique(['participant_id', 'endpoint_hash'], 'push_participant_endpoint');
         });
     }
 

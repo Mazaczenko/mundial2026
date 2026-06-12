@@ -32,5 +32,9 @@
         "vite-plugin-pwa": "^1.3.0",
         "vue": "^3.4.0",
         "vue-tsc": "^2.0.24"
+    },
+    "dependencies": {
+        "chart.js": "^4.5.1",
+        "vue-chartjs": "^5.3.3"
     }
 }

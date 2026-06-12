@@ -30,12 +30,13 @@ export interface MatchData {
     kickoff_at: string;
     stage: 'group' | 'r32' | 'r16' | 'qf' | 'sf' | 'final';
     group_name: string | null;
-    status: 'scheduled' | 'finished';
+    status: 'scheduled' | 'in_play' | 'finished';
     score_home: number | null;
     score_away: number | null;
     can_bet: boolean;
     my_bet: Bet | null;
     others_bets: OtherBet[];
+    bet_stats: { '1': number; 'X': number; '2': number; total: number } | null;
     goals: Array<{
         player_name: string;
         team_side: 'home' | 'away';

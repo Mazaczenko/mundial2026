@@ -2,13 +2,95 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import { Head } from '@inertiajs/vue3';
 import { ref, computed } from 'vue';
+import { Line } from 'vue-chartjs';
+import {
+    Chart as ChartJS,
+    CategoryScale,
+    LinearScale,
+    PointElement,
+    LineElement,
+    Title,
+    Tooltip,
+    Legend,
+} from 'chart.js';
 import type { RankingEntry } from '@/types';
+
+ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend);
+
+interface ChartDataset {
+    label: string;
+    data: (number | null)[];
+}
 
 interface Props {
     ranking: RankingEntry[];
+    chartData: {
+        labels: string[];
+        datasets: ChartDataset[];
+    } | [];
 }
 
 const props = defineProps<Props>();
+
+const COLORS = [
+    '#6366f1','#f59e0b','#10b981','#ef4444','#3b82f6',
+    '#8b5cf6','#ec4899','#14b8a6','#f97316','#84cc16',
+    '#06b6d4','#a855f7','#fb923c','#22c55e','#e11d48',
+];
+
+const hasChartData = computed(() =>
+    !Array.isArray(props.chartData) && (props.chartData as any).labels?.length > 0
+);
+
+const chartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    interaction: { mode: 'index' as const, intersect: false },
+    plugins: {
+        legend: {
+            position: 'bottom' as const,
+            labels: { boxWidth: 12, padding: 12, font: { size: 11 } },
+        },
+        tooltip: {
+            callbacks: {
+                title: (items: any[]) => items[0]?.label ?? '',
+                label: (item: any) => ` ${item.dataset.label}: ${item.raw} pkt`,
+            },
+        },
+    },
+    scales: {
+        x: {
+            ticks: { font: { size: 10 }, maxRotation: 45 },
+            grid: { display: false },
+        },
+        y: {
+            beginAtZero: true,
+            ticks: { stepSize: 1, font: { size: 11 } },
+            title: { display: true, text: 'Punkty', font: { size: 11 } },
+        },
+    },
+};
+
+const chartDataset = computed(() => {
+    if (!hasChartData.value) return { labels: [], datasets: [] };
+    const d = props.chartData as { labels: string[]; datasets: ChartDataset[] };
+    return {
+        labels: d.labels,
+        datasets: d.datasets.map((ds, i) => ({
+            label: ds.label,
+            data: ds.data,
+            borderColor: COLORS[i % COLORS.length],
+            backgroundColor: COLORS[i % COLORS.length] + '22',
+            borderWidth: 2,
+            pointRadius: 4,
+            pointHoverRadius: 6,
+            tension: 0.3,
+            spanGaps: true,
+        })),
+    };
+});
+
+const showChart = ref(true);
 
 const PER_PAGE = 25;
 const search = ref('');
@@ -68,6 +150,24 @@ function setSort(mode: 'rank' | 'alpha') {
 
         <div class="py-6">
             <div class="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
+
+                <!-- Chart -->
+                <div v-if="hasChartData" class="mb-6 overflow-hidden rounded-lg bg-white shadow dark:bg-gray-800">
+                    <button
+                        @click="showChart = !showChart"
+                        class="flex w-full items-center justify-between px-4 py-3 text-left text-sm font-medium text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-700/50"
+                    >
+                        <span>Wykres punktów w czasie</span>
+                        <svg class="h-4 w-4 transition-transform" :class="showChart ? 'rotate-180' : ''" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+                        </svg>
+                    </button>
+                    <div v-show="showChart" class="border-t border-gray-100 px-4 pb-4 pt-3 dark:border-gray-700">
+                        <div class="relative h-72">
+                            <Line :data="chartDataset" :options="chartOptions" />
+                        </div>
+                    </div>
+                </div>
 
                 <!-- Header + controls -->
                 <div class="mb-4 flex flex-wrap items-center gap-3">

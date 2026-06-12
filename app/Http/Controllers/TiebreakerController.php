@@ -13,14 +13,17 @@ use Inertia\Response;
 
 class TiebreakerController extends Controller
 {
+    // Niedziela 15.06.2026 23:59 czasu warszawskiego (CEST = UTC+2)
+    public const DEADLINE = '2026-06-15 21:59:59';
+
     public function show(): Response
     {
         /** @var Participant $user */
         $user = Auth::user();
 
         return Inertia::render('Tiebreaker/Show', [
-            'pick' => $user->tiebreakerPick,
-            'deadline' => Carbon::parse('2026-06-11 18:00:00', 'UTC')->toIso8601String(),
+            'pick'     => $user->tiebreakerPick,
+            'deadline' => Carbon::parse(self::DEADLINE, 'UTC')->toIso8601String(),
         ]);
     }
 

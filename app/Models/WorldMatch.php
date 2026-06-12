@@ -12,6 +12,7 @@ class WorldMatch extends Model
     /** @var list<string> */
     protected $fillable = [
         'api_fixture_id',
+        'espn_event_id',
         'home_team',
         'away_team',
         'home_team_flag',

@@ -48,6 +48,18 @@ class BetController extends Controller
                     ->values()
                 : collect();
 
+            $betStats = null;
+            if ($isVisible && $match->bets->isNotEmpty()) {
+                $total = $match->bets->count();
+                $counts = $match->bets->countBy('prediction_1x2');
+                $betStats = [
+                    '1' => round(($counts['1'] ?? 0) / $total * 100),
+                    'X' => round(($counts['X'] ?? 0) / $total * 100),
+                    '2' => round(($counts['2'] ?? 0) / $total * 100),
+                    'total' => $total,
+                ];
+            }
+
             return [
                 'id' => $match->id,
                 'home_team' => $match->home_team,
@@ -69,6 +81,7 @@ class BetController extends Controller
                     'is_correct' => $myBet->is_correct,
                 ] : null,
                 'others_bets' => $othersBets,
+                'bet_stats' => $betStats,
                 'goals' => $match->goals->map(fn ($g) => [
                     'player_name' => $g->player_name,
                     'team_side' => $g->team_side,

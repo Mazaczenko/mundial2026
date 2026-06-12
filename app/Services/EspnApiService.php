@@ -107,7 +107,7 @@ class EspnApiService
         return 'home';
     }
 
-    private function getEventsByDate(string $date): array
+    public function getEventsByDate(string $date): array
     {
         $key = 'espn.scoreboard.' . str_replace('-', '', $date);
 

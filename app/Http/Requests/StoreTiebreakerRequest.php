@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use Illuminate\Contracts\Validation\ValidationRule;
+use App\Http\Controllers\TiebreakerController;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Carbon;
 
@@ -10,7 +11,7 @@ class StoreTiebreakerRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return Carbon::now()->lt(Carbon::parse('2026-06-11 18:00:00', 'UTC'));
+        return Carbon::now()->lt(Carbon::parse(TiebreakerController::DEADLINE, 'UTC'));
     }
 
     /**

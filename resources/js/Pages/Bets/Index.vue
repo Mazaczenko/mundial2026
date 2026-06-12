@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import { Head, useForm, router } from '@inertiajs/vue3';
-import { ref } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import type { MatchData } from '@/types';
 
 interface Props {
@@ -57,6 +57,28 @@ function formatTime(iso: string): string {
         timeZone: 'Europe/Warsaw',
     });
 }
+
+const allMatches = computed(() =>
+    Object.values(props.matchesByDate).flat()
+);
+
+const hasLive = computed(() =>
+    allMatches.value.some(m => m.status === 'in_play')
+);
+
+let liveInterval: ReturnType<typeof setInterval> | null = null;
+
+onMounted(() => {
+    if (hasLive.value) {
+        liveInterval = setInterval(() => {
+            router.reload({ only: ['matchesByDate'] });
+        }, 30000);
+    }
+});
+
+onUnmounted(() => {
+    if (liveInterval) clearInterval(liveInterval);
+});
 
 const betForms = ref<Record<number, ReturnType<typeof useForm>>>({});
 
@@ -119,9 +141,15 @@ function isKnockout(stage: string): boolean {
                                         {{ stageLabels[match.stage] }}
                                         <span v-if="match.group_name"> · Gr. {{ match.group_name }}</span>
                                     </span>
-                                    <span class="text-sm text-gray-500 dark:text-gray-400">
-                                        {{ formatTime(match.kickoff_at) }}
-                                    </span>
+                                    <div class="flex items-center gap-2">
+                                        <span v-if="match.status === 'in_play'" class="inline-flex items-center gap-1 rounded-full bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-600 dark:bg-red-900/30 dark:text-red-400">
+                                            <span class="h-1.5 w-1.5 animate-pulse rounded-full bg-red-500"></span>
+                                            LIVE
+                                        </span>
+                                        <span class="text-sm text-gray-500 dark:text-gray-400">
+                                            {{ formatTime(match.kickoff_at) }}
+                                        </span>
+                                    </div>
                                 </div>
 
                                 <div class="mt-3 grid items-start gap-2" style="grid-template-columns: 1fr 5rem 1fr">
@@ -140,6 +168,11 @@ function isKnockout(stage: string): boolean {
                                             </div>
                                             <div class="mt-1 text-xs text-gray-500">Wynik końcowy</div>
                                         </template>
+                                        <template v-else-if="match.status === 'in_play'">
+                                            <div class="text-2xl font-bold text-red-600 dark:text-red-400">
+                                                {{ match.score_home }} : {{ match.score_away }}
+                                            </div>
+                                        </template>
                                         <template v-else>
                                             <div class="text-xl font-light text-gray-400">vs</div>
                                             <div v-if="!match.can_bet" class="mt-1 text-xs text-red-500">Deadline minął</div>
@@ -156,7 +189,7 @@ function isKnockout(stage: string): boolean {
 
                                 <!-- Goals row -->
                                 <div
-                                    v-if="match.status === 'finished' && match.goals.length > 0"
+                                    v-if="match.status !== 'scheduled' && match.goals.length > 0"
                                     class="mt-2 grid gap-x-2 text-xs text-gray-400 dark:text-gray-500"
                                     style="grid-template-columns: 1fr 5rem 1fr"
                                 >
@@ -257,6 +290,28 @@ function isKnockout(stage: string): boolean {
                                             </span>
                                         </template>
                                         <span v-else class="text-gray-400">–</span>
+                                    </div>
+                                </div>
+
+                                <!-- Bet stats bar -->
+                                <div v-if="match.bet_stats" class="mt-3">
+                                    <div class="flex overflow-hidden rounded-md text-xs font-semibold">
+                                        <div
+                                            v-for="opt in ['1', 'X', '2']"
+                                            :key="opt"
+                                            class="flex items-center justify-center gap-1 py-1.5 transition-all"
+                                            :class="{
+                                                'bg-indigo-600 text-white': match.my_bet?.prediction_1x2 === opt,
+                                                'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300': match.my_bet?.prediction_1x2 !== opt,
+                                            }"
+                                            :style="{ width: match.bet_stats[opt as '1'|'X'|'2'] + '%', minWidth: match.bet_stats[opt as '1'|'X'|'2'] > 0 ? '2rem' : '0' }"
+                                        >
+                                            <span>{{ opt }}</span>
+                                            <span class="opacity-75">{{ match.bet_stats[opt as '1'|'X'|'2'] }}%</span>
+                                        </div>
+                                    </div>
+                                    <div class="mt-1 text-right text-xs text-gray-400 dark:text-gray-500">
+                                        {{ match.bet_stats.total }} {{ match.bet_stats.total === 1 ? 'typ' : match.bet_stats.total < 5 ? 'typy' : 'typów' }}
                                     </div>
                                 </div>
 

@@ -11,6 +11,7 @@ class BetService
 {
     public function __construct(
         private readonly EliminationService $eliminationService,
+        private readonly RankingSnapshotService $snapshotService,
     ) {}
 
     public function placeBet(Participant $participant, array $data): Bet
@@ -76,5 +77,6 @@ class BetService
         }
 
         $this->eliminationService->checkAll();
+        $this->snapshotService->takeSnapshot($match);
     }
 }

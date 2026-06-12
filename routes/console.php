@@ -2,6 +2,7 @@
 
 use App\Jobs\CheckEliminationsJob;
 use App\Jobs\FetchFinishedMatchResultsJob;
+use App\Jobs\FetchLiveMatchScoresJob;
 use App\Jobs\SendMatchRemindersJob;
 use App\Jobs\SyncStandingsJob;
 use App\Jobs\SyncTopScorersJob;
@@ -13,6 +14,7 @@ Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->purpose('Display an inspiring quote');
 
+Schedule::job(new FetchLiveMatchScoresJob)->everyMinute();
 Schedule::job(new FetchFinishedMatchResultsJob)->everyFifteenMinutes();
 Schedule::job(new SyncStandingsJob)->hourly();
 Schedule::job(new SyncTopScorersJob)->twiceDaily(8, 20);

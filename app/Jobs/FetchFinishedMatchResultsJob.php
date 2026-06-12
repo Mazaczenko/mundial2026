@@ -2,7 +2,6 @@
 
 namespace App\Jobs;
 
-use App\Models\MatchGoal;
 use App\Models\WorldMatch;
 use App\Services\BetService;
 use App\Services\EliminationService;
@@ -44,7 +43,7 @@ class FetchFinishedMatchResultsJob implements ShouldQueue
             }
 
             $match->update([
-                'status'     => 'finished',
+                'status' => 'finished',
                 'score_home' => $fixture['score']['fullTime']['home'] ?? null,
                 'score_away' => $fixture['score']['fullTime']['away'] ?? null,
             ]);
@@ -60,29 +59,6 @@ class FetchFinishedMatchResultsJob implements ShouldQueue
 
     public function syncGoals(EspnApiService $espnApi, WorldMatch $match): void
     {
-        $date    = $match->kickoff_at->format('Y-m-d');
-        $eventId = $espnApi->findEventId($date, $match->home_team, $match->away_team);
-
-        if ($eventId === null) {
-            return;
-        }
-
-        $goals = $espnApi->getGoals($eventId, $match->home_team, $match->away_team);
-
-        if (empty($goals)) {
-            return;
-        }
-
-        $match->goals()->delete();
-
-        foreach ($goals as $goal) {
-            MatchGoal::create([
-                'world_match_id' => $match->id,
-                'player_name'    => $goal['player_name'],
-                'team_side'      => $goal['team_side'],
-                'minute'         => $goal['minute'],
-                'own_goal'       => $goal['own_goal'],
-            ]);
-        }
+        $espnApi->syncGoalsForMatch($match);
     }
 }

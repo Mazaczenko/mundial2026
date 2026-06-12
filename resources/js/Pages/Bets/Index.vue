@@ -92,7 +92,7 @@ function isKnockout(stage: string): boolean {
 
 <template>
     <AuthenticatedLayout>
-        <Head title="Typy — Mundial 2026" />
+        <Head title="Typy" />
 
         <div class="py-6">
             <div class="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">

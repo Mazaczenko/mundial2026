@@ -49,7 +49,7 @@ const positionOrder = ['Goalkeeper', 'Defence', 'Midfield', 'Offence'];
 
 <template>
     <AuthenticatedLayout>
-        <Head title="Składy — Mundial 2026" />
+        <Head title="Składy" />
 
         <div class="py-6">
             <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">

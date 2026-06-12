@@ -32,7 +32,7 @@ function formatDeadline(iso: string): string {
 
 <template>
     <AuthenticatedLayout>
-        <Head title="Tiebreaker — Mundial 2026" />
+        <Head title="Tiebreaker" />
 
         <div class="py-6">
             <div class="mx-auto max-w-lg px-4 sm:px-6 lg:px-8">

@@ -64,7 +64,7 @@ function setSort(mode: 'rank' | 'alpha') {
 
 <template>
     <AuthenticatedLayout>
-        <Head title="Ranking — Mundial 2026" />
+        <Head title="Ranking" />
 
         <div class="py-6">
             <div class="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">

@@ -16,7 +16,7 @@ const submit = () => {
 </script>
 
 <template>
-    <Head title="Reset hasła — Mundial 2026" />
+    <Head title="Reset hasła" />
 
     <div class="login-bg relative flex min-h-dvh flex-col items-center justify-center overflow-hidden px-4 py-12">
 

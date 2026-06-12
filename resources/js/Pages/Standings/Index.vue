@@ -24,7 +24,7 @@ const visibleStandings = computed(() =>
 
 <template>
     <AuthenticatedLayout>
-        <Head title="Tabele grup — Mundial 2026" />
+        <Head title="Tabele grup" />
 
         <div class="py-6">
             <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">

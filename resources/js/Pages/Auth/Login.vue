@@ -19,7 +19,7 @@ const submit = () => {
 </script>
 
 <template>
-    <Head title="Logowanie — Mundial 2026" />
+    <Head title="Logowanie" />
     <PwaInstallBanner />
 
     <div class="login-bg relative flex min-h-dvh flex-col items-center justify-center overflow-hidden px-4 py-12">

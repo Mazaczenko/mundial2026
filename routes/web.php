@@ -4,6 +4,7 @@ use App\Http\Controllers\Auth\ForgotPasswordController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\ResetPasswordController;
 use App\Http\Controllers\BetController;
+use App\Http\Controllers\PushSubscriptionController;
 use App\Http\Controllers\RankingController;
 use App\Http\Controllers\SquadController;
 use App\Http\Controllers\StandingsController;
@@ -31,4 +32,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/tiebreaker', [TiebreakerController::class, 'show'])->name('tiebreaker.show');
     Route::post('/tiebreaker', [TiebreakerController::class, 'store'])->name('tiebreaker.store');
     Route::get('/squads', [SquadController::class, 'index'])->name('squads.index');
+
+    Route::post('/push/subscribe', [PushSubscriptionController::class, 'store'])->name('push.subscribe');
+    Route::post('/push/unsubscribe', [PushSubscriptionController::class, 'destroy'])->name('push.unsubscribe');
 });

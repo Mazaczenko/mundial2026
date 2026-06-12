@@ -10,26 +10,12 @@ class EliminationService
 {
     public function checkAll(): void
     {
-        $pastCount = $this->pastDeadlineCount();
-
-        Participant::query()
-            ->where('eliminated', false)
-            ->each(function (Participant $participant) use ($pastCount) {
-                if ($this->missedCount($participant, $pastCount) >= 3) {
-                    $participant->update(['eliminated' => true]);
-                }
-            });
+        // eliminacje wyłączone
     }
 
     public function checkParticipant(Participant $participant): void
     {
-        if ($participant->eliminated) {
-            return;
-        }
-
-        if ($this->missedCount($participant) >= 3) {
-            $participant->update(['eliminated' => true]);
-        }
+        // eliminacje wyłączone
     }
 
     private function missedCount(Participant $participant, ?int $pastCount = null): int

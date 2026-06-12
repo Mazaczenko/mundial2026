@@ -2,12 +2,14 @@
 
 namespace App\Console\Commands;
 
+use App\Jobs\FetchFinishedMatchResultsJob;
 use App\Jobs\SyncStandingsJob;
 use App\Jobs\SyncTopScorersJob;
 use App\Models\GroupStanding;
 use App\Models\WorldMatch;
 use App\Services\BetService;
 use App\Services\EliminationService;
+use App\Services\EspnApiService;
 use App\Services\FootballApiService;
 use Illuminate\Console\Command;
 use Illuminate\Support\Carbon;
@@ -20,11 +22,12 @@ class SyncDataCommand extends Command
                             {--scorers : Synchronizuj top strzelców}
                             {--players : Synchronizuj składy drużyn}
                             {--results : Pobierz wyniki wszystkich rozegranych meczów}
+                            {--goals : Pobierz strzelców goli dla zakończonych meczów}
                             {--all : Synchronizuj wszystko}';
 
     protected $description = 'Ręczna synchronizacja danych z football-data.org';
 
-    public function handle(FootballApiService $api, BetService $betService, EliminationService $eliminationService): int
+    public function handle(FootballApiService $api, EspnApiService $espnApi, BetService $betService, EliminationService $eliminationService): int
     {
         $all = $this->option('all');
 
@@ -49,11 +52,15 @@ class SyncDataCommand extends Command
         }
 
         if ($all || $this->option('results')) {
-            $this->syncResults($api, $betService, $eliminationService);
+            $this->syncResults($api, $espnApi, $betService, $eliminationService);
         }
 
-        if (! $all && ! $this->option('standings') && ! $this->option('scorers') && ! $this->option('players') && ! $this->option('results')) {
-            $this->warn('Podaj opcję: --standings, --scorers, --players, --results lub --all');
+        if ($all || $this->option('goals')) {
+            $this->syncGoals($espnApi);
+        }
+
+        if (! $all && ! $this->option('standings') && ! $this->option('scorers') && ! $this->option('players') && ! $this->option('results') && ! $this->option('goals')) {
+            $this->warn('Podaj opcję: --standings, --scorers, --players, --results, --goals lub --all');
 
             return self::FAILURE;
         }
@@ -61,7 +68,7 @@ class SyncDataCommand extends Command
         return self::SUCCESS;
     }
 
-    private function syncResults(FootballApiService $api, BetService $betService, EliminationService $eliminationService): void
+    private function syncResults(FootballApiService $api, EspnApiService $espnApi, BetService $betService, EliminationService $eliminationService): void
     {
         $this->info('Pobieranie wyników rozegranych meczów...');
 
@@ -118,15 +125,51 @@ class SyncDataCommand extends Command
                     'score_away' => $scoreAway,
                 ]);
 
+                $job = new FetchFinishedMatchResultsJob;
+                $job->syncGoals($espnApi, $match);
+
                 $match->refresh()->load('bets');
                 $betService->resolveBets($match);
 
-                $this->info("    ✓ {$match->home_team} {$scoreHome}:{$scoreAway} {$match->away_team}");
+                $goalCount = $match->goals()->count();
+                $this->info("    ✓ {$match->home_team} {$scoreHome}:{$scoreAway} {$match->away_team} ({$goalCount} goli)");
                 $updated++;
             }
         }
 
         $eliminationService->checkAll();
+
+        $this->info("Zaktualizowano {$updated} meczów.");
+    }
+
+    private function syncGoals(EspnApiService $espnApi): void
+    {
+        $this->info('Pobieranie strzelców goli...');
+
+        $matches = WorldMatch::where('status', 'finished')
+            ->whereDoesntHave('goals')
+            ->orderBy('kickoff_at')
+            ->get();
+
+        if ($matches->isEmpty()) {
+            $this->info('Brak meczów bez strzelców.');
+            return;
+        }
+
+        $this->info("Znaleziono {$matches->count()} meczów bez goli.");
+        $job = new FetchFinishedMatchResultsJob;
+        $updated = 0;
+
+        foreach ($matches as $match) {
+            $job->syncGoals($espnApi, $match);
+            $count = $match->goals()->count();
+            if ($count > 0) {
+                $this->info("  ✓ {$match->home_team} vs {$match->away_team}: {$count} goli");
+                $updated++;
+            } else {
+                $this->line("  – {$match->home_team} vs {$match->away_team}: brak danych ESPN");
+            }
+        }
 
         $this->info("Zaktualizowano {$updated} meczów.");
     }

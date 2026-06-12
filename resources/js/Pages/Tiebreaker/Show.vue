@@ -50,9 +50,15 @@ function formatDeadline(iso: string): string {
                         Deadline: {{ formatDeadline(deadline) }}
                     </p>
 
-                    <!-- Brak dostępu -->
-                    <div v-if="!allowed" class="mt-6 rounded-md bg-red-50 p-4 text-sm text-red-700 dark:bg-red-900/20 dark:text-red-300">
-                        Nie masz dostępu do tiebreakerów.
+                    <!-- Brak dostępu — pokaż własny typ (tylko do odczytu) -->
+                    <div v-if="!allowed" class="mt-6">
+                        <div v-if="pick" class="rounded-md bg-gray-50 p-4 dark:bg-gray-900">
+                            <p class="text-sm text-gray-600 dark:text-gray-400">Twój typ króla strzelców:</p>
+                            <p class="mt-1 text-lg font-semibold text-gray-900 dark:text-white">{{ pick.top_scorer_name }}</p>
+                        </div>
+                        <div v-else class="rounded-md bg-gray-50 p-4 text-sm text-gray-500 dark:bg-gray-900 dark:text-gray-400">
+                            Nie wpisałeś swojego typowania.
+                        </div>
                     </div>
 
                     <!-- Dostęp OK -->

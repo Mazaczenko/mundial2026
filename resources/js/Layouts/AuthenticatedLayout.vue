@@ -108,6 +108,9 @@ function toggleDark() {
                                 <NavLink :href="route('standings.index')" :active="route().current('standings.index')">
                                     Tabele
                                 </NavLink>
+                                <NavLink :href="route('scorers.index')" :active="route().current('scorers.index')">
+                                    Strzelcy
+                                </NavLink>
                                 <NavLink :href="route('tiebreaker.show')" :active="route().current('tiebreaker.show')">
                                     Tiebreaker
                                 </NavLink>
@@ -229,6 +232,9 @@ function toggleDark() {
                         </ResponsiveNavLink>
                         <ResponsiveNavLink :href="route('standings.index')" :active="route().current('standings.index')">
                             Tabele
+                        </ResponsiveNavLink>
+                        <ResponsiveNavLink :href="route('scorers.index')" :active="route().current('scorers.index')">
+                            Strzelcy
                         </ResponsiveNavLink>
                         <ResponsiveNavLink :href="route('tiebreaker.show')" :active="route().current('tiebreaker.show')">
                             Tiebreaker

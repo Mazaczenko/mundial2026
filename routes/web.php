@@ -6,6 +6,7 @@ use App\Http\Controllers\Auth\ResetPasswordController;
 use App\Http\Controllers\BetController;
 use App\Http\Controllers\PushSubscriptionController;
 use App\Http\Controllers\RankingController;
+use App\Http\Controllers\ScorersController;
 use App\Http\Controllers\SquadController;
 use App\Http\Controllers\StandingsController;
 use App\Http\Controllers\TiebreakerController;
@@ -29,6 +30,7 @@ Route::middleware('auth')->group(function () {
     Route::put('/bets/{bet}', [BetController::class, 'update'])->name('bets.update');
     Route::get('/ranking', [RankingController::class, 'index'])->name('ranking.index');
     Route::get('/standings', [StandingsController::class, 'index'])->name('standings.index');
+    Route::get('/scorers', [ScorersController::class, 'index'])->name('scorers.index');
     Route::get('/tiebreaker', [TiebreakerController::class, 'show'])->name('tiebreaker.show');
     Route::post('/tiebreaker', [TiebreakerController::class, 'store'])->name('tiebreaker.store');
     Route::get('/squads', [SquadController::class, 'index'])->name('squads.index');

@@ -17,7 +17,9 @@ class EspnApiService
      */
     public function findEventId(string $date, string $homeTeam, string $awayTeam): ?string
     {
-        $events = $this->getEventsByDate($date);
+        // ESPN uses US Eastern time — matches at 00:00–05:00 UTC appear under the previous day
+        $dates = [$date, date('Y-m-d', strtotime($date . ' -1 day'))];
+        $events = array_merge($this->getEventsByDate($dates[0]), $this->getEventsByDate($dates[1]));
 
         foreach ($events as $event) {
             $competitors = $event['competitions'][0]['competitors'] ?? [];

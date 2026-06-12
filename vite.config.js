@@ -19,6 +19,9 @@ export default defineConfig({
             },
         }),
         VitePWA({
+            strategies: 'injectManifest',
+            srcDir: 'resources/js',
+            filename: 'sw.ts',
             registerType: 'autoUpdate',
             injectRegister: 'null',
             outDir: 'public',

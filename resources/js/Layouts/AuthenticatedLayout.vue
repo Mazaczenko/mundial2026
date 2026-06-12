@@ -1,14 +1,69 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, onMounted } from 'vue';
 import Dropdown from '@/Components/Dropdown.vue';
 import DropdownLink from '@/Components/DropdownLink.vue';
 import NavLink from '@/Components/NavLink.vue';
 import PwaInstallBanner from '@/Components/PwaInstallBanner.vue';
 import ResponsiveNavLink from '@/Components/ResponsiveNavLink.vue';
-import { Link, usePage } from '@inertiajs/vue3';
+import { Link, router, usePage } from '@inertiajs/vue3';
 
 const showingNavigationDropdown = ref(false);
 const page = usePage();
+
+// ── Web Push ──────────────────────────────────────────────────────────────
+const pushSupported = typeof window !== 'undefined' && 'serviceWorker' in navigator && 'PushManager' in window;
+const pushEnabled = ref(false);
+
+function urlBase64ToUint8Array(base64: string): Uint8Array {
+    const padding = '='.repeat((4 - (base64.length % 4)) % 4);
+    const b64 = (base64 + padding).replace(/-/g, '+').replace(/_/g, '/');
+    const raw = atob(b64);
+    return Uint8Array.from([...raw].map(c => c.charCodeAt(0)));
+}
+
+async function checkPushStatus() {
+    if (!pushSupported) return;
+    const reg = await navigator.serviceWorker.ready;
+    const sub = await reg.pushManager.getSubscription();
+    pushEnabled.value = !!sub;
+}
+
+async function togglePush() {
+    if (!pushSupported) return;
+    const reg = await navigator.serviceWorker.ready;
+
+    if (pushEnabled.value) {
+        const sub = await reg.pushManager.getSubscription();
+        if (sub) {
+            await fetch(route('push.unsubscribe'), {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': (document.querySelector('meta[name=csrf-token]') as HTMLMetaElement)?.content ?? '' },
+                body: JSON.stringify({ endpoint: sub.endpoint }),
+            });
+            await sub.unsubscribe();
+        }
+        pushEnabled.value = false;
+    } else {
+        const vapidKey = (page.props as any).vapidPublicKey as string;
+        try {
+            const sub = await reg.pushManager.subscribe({
+                userVisibleOnly: true,
+                applicationServerKey: urlBase64ToUint8Array(vapidKey),
+            });
+            const json = sub.toJSON();
+            await fetch(route('push.subscribe'), {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': (document.querySelector('meta[name=csrf-token]') as HTMLMetaElement)?.content ?? '' },
+                body: JSON.stringify({ endpoint: sub.endpoint, keys: json.keys }),
+            });
+            pushEnabled.value = true;
+        } catch {
+            // permission denied or other error
+        }
+    }
+}
+
+onMounted(() => { checkPushStatus(); });
 
 const isDark = ref(document.documentElement.classList.contains('dark'));
 
@@ -70,6 +125,21 @@ function toggleDark() {
                         </div>
 
                         <div class="hidden sm:ms-6 sm:flex sm:items-center gap-2">
+                            <!-- Push notifications toggle -->
+                            <button
+                                v-if="pushSupported"
+                                @click="togglePush"
+                                type="button"
+                                :title="pushEnabled ? 'Wyłącz powiadomienia push' : 'Włącz powiadomienia push'"
+                                class="rounded-md p-2 transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                :class="pushEnabled
+                                    ? 'text-indigo-600 hover:bg-indigo-50 dark:text-indigo-400 dark:hover:bg-indigo-900/20'
+                                    : 'text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-700 dark:hover:text-gray-200'"
+                            >
+                                <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 0 0 5.454-1.31A8.967 8.967 0 0 1 18 9.75V9A6 6 0 0 0 6 9v.75a8.967 8.967 0 0 1-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 0 1-5.714 0m5.714 0a3 3 0 1 1-5.714 0" />
+                                </svg>
+                            </button>
                             <!-- Dark mode toggle -->
                             <button
                                 @click="toggleDark"

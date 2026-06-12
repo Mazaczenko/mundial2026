@@ -1,7 +1,27 @@
 <script setup lang="ts">
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import { Head } from '@inertiajs/vue3';
-import { ref, computed } from 'vue';
+import { ref, computed, defineComponent, h } from 'vue';
+
+const SortIcon = defineComponent({
+    props: { col: String, activeCol: String, dir: String },
+    setup(props) {
+        return () => {
+            const active = props.col === props.activeCol;
+            const asc = props.dir === 'asc';
+            return h('span', { class: 'ml-0.5 inline-flex flex-col leading-none' }, [
+                h('svg', {
+                    class: ['w-2.5 h-2.5 -mb-0.5', active && asc ? 'text-indigo-600' : 'text-gray-300 dark:text-gray-600'],
+                    viewBox: '0 0 10 6', fill: 'currentColor',
+                }, [h('path', { d: 'M5 0L10 6H0z' })]),
+                h('svg', {
+                    class: ['w-2.5 h-2.5', active && !asc ? 'text-indigo-600' : 'text-gray-300 dark:text-gray-600'],
+                    viewBox: '0 0 10 6', fill: 'currentColor',
+                }, [h('path', { d: 'M5 6L0 0h10z' })]),
+            ]);
+        };
+    },
+});
 import { Line } from 'vue-chartjs';
 import {
     Chart as ChartJS,
@@ -92,9 +112,13 @@ const chartDataset = computed(() => {
 
 const showChart = ref(true);
 
+type SortCol = 'rank' | 'name' | 'points' | 'bets_count' | 'missed_count';
+type SortDir = 'asc' | 'desc';
+
 const PER_PAGE = 25;
 const search = ref('');
-const sortMode = ref<'rank' | 'alpha'>('rank');
+const sortCol = ref<SortCol>('rank');
+const sortDir = ref<SortDir>('asc');
 const page = ref(1);
 
 const active = computed(() => props.ranking.filter((p) => !p.eliminated));
@@ -108,8 +132,22 @@ const filteredActive = computed(() => {
         list = list.filter((p) => p.name.toLowerCase().includes(q));
     }
 
-    if (sortMode.value === 'alpha') {
-        list = [...list].sort((a, b) => a.name.localeCompare(b.name, 'pl'));
+    if (sortCol.value !== 'rank') {
+        list = [...list].sort((a, b) => {
+            let cmp = 0;
+            if (sortCol.value === 'name') {
+                cmp = a.name.localeCompare(b.name, 'pl');
+            } else if (sortCol.value === 'points') {
+                cmp = a.points - b.points;
+            } else if (sortCol.value === 'bets_count') {
+                cmp = a.bets_count - b.bets_count;
+            } else if (sortCol.value === 'missed_count') {
+                cmp = a.missed_count - b.missed_count;
+            }
+            return sortDir.value === 'asc' ? cmp : -cmp;
+        });
+    } else if (sortDir.value === 'desc') {
+        list = [...list].reverse();
     }
 
     return list;
@@ -128,7 +166,6 @@ const paginated = computed(() => {
     return filteredActive.value.slice(start, start + PER_PAGE);
 });
 
-// rank position respects original order (before pagination)
 function rankOf(entry: RankingEntry): number {
     return active.value.indexOf(entry) + 1;
 }
@@ -138,8 +175,17 @@ function setSearch(val: string) {
     page.value = 1;
 }
 
-function setSort(mode: 'rank' | 'alpha') {
-    sortMode.value = mode;
+const defaultDir: Record<SortCol, SortDir> = {
+    rank: 'asc', name: 'asc', points: 'desc', bets_count: 'desc', missed_count: 'asc',
+};
+
+function toggleSort(col: SortCol) {
+    if (sortCol.value === col) {
+        sortDir.value = sortDir.value === 'asc' ? 'desc' : 'asc';
+    } else {
+        sortCol.value = col;
+        sortDir.value = defaultDir[col];
+    }
     page.value = 1;
 }
 </script>
@@ -173,7 +219,7 @@ function setSort(mode: 'rank' | 'alpha') {
                 <div class="mb-4 flex flex-wrap items-center gap-3">
                     <h1 class="text-2xl font-bold text-gray-800 dark:text-gray-100">Ranking</h1>
 
-                    <div class="flex flex-1 flex-wrap items-center gap-2 sm:ml-4">
+                    <div class="flex flex-1 items-center sm:ml-4">
                         <!-- Search -->
                         <div class="relative min-w-[160px] flex-1">
                             <svg class="pointer-events-none absolute inset-y-0 left-2.5 my-auto h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -187,24 +233,6 @@ function setSort(mode: 'rank' | 'alpha') {
                                 class="w-full rounded-lg border border-gray-300 bg-white py-1.5 pl-8 pr-3 text-sm focus:border-indigo-400 focus:outline-none focus:ring-1 focus:ring-indigo-400 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
                             />
                         </div>
-
-                        <!-- Sort toggle -->
-                        <div class="flex rounded-lg border border-gray-300 dark:border-gray-600 overflow-hidden text-sm">
-                            <button
-                                @click="setSort('rank')"
-                                class="px-3 py-1.5 font-medium transition-colors"
-                                :class="sortMode === 'rank'
-                                    ? 'bg-indigo-600 text-white'
-                                    : 'bg-white text-gray-600 hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-300'"
-                            >Ranking</button>
-                            <button
-                                @click="setSort('alpha')"
-                                class="px-3 py-1.5 font-medium transition-colors border-l border-gray-300 dark:border-gray-600"
-                                :class="sortMode === 'alpha'
-                                    ? 'bg-indigo-600 text-white'
-                                    : 'bg-white text-gray-600 hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-300'"
-                            >A–Z</button>
-                        </div>
                     </div>
                 </div>
 
@@ -213,11 +241,31 @@ function setSort(mode: 'rank' | 'alpha') {
                     <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                         <thead class="bg-gray-50 dark:bg-gray-900">
                             <tr>
-                                <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">#</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Uczestnik</th>
-                                <th class="px-4 py-3 text-center text-xs font-medium uppercase tracking-wide text-gray-500">Pkt</th>
-                                <th class="hidden px-4 py-3 text-center text-xs font-medium uppercase tracking-wide text-gray-500 sm:table-cell">Obst.</th>
-                                <th class="hidden px-4 py-3 text-center text-xs font-medium uppercase tracking-wide text-gray-500 sm:table-cell">Pominięte</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">
+                                    <button @click="toggleSort('rank')" class="inline-flex items-center gap-1 hover:text-gray-700 dark:hover:text-gray-300">
+                                        #<SortIcon col="rank" :active-col="sortCol" :dir="sortDir" />
+                                    </button>
+                                </th>
+                                <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">
+                                    <button @click="toggleSort('name')" class="inline-flex items-center gap-1 hover:text-gray-700 dark:hover:text-gray-300">
+                                        Uczestnik<SortIcon col="name" :active-col="sortCol" :dir="sortDir" />
+                                    </button>
+                                </th>
+                                <th class="px-4 py-3 text-center text-xs font-medium uppercase tracking-wide text-gray-500">
+                                    <button @click="toggleSort('points')" class="inline-flex items-center gap-1 hover:text-gray-700 dark:hover:text-gray-300">
+                                        Pkt<SortIcon col="points" :active-col="sortCol" :dir="sortDir" />
+                                    </button>
+                                </th>
+                                <th class="hidden px-4 py-3 text-center text-xs font-medium uppercase tracking-wide text-gray-500 sm:table-cell">
+                                    <button @click="toggleSort('bets_count')" class="inline-flex items-center gap-1 hover:text-gray-700 dark:hover:text-gray-300">
+                                        Obst.<SortIcon col="bets_count" :active-col="sortCol" :dir="sortDir" />
+                                    </button>
+                                </th>
+                                <th class="hidden px-4 py-3 text-center text-xs font-medium uppercase tracking-wide text-gray-500 sm:table-cell">
+                                    <button @click="toggleSort('missed_count')" class="inline-flex items-center gap-1 hover:text-gray-700 dark:hover:text-gray-300">
+                                        Pominięte<SortIcon col="missed_count" :active-col="sortCol" :dir="sortDir" />
+                                    </button>
+                                </th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
@@ -227,7 +275,7 @@ function setSort(mode: 'rank' | 'alpha') {
                                 class="hover:bg-gray-50 dark:hover:bg-gray-700/50"
                             >
                                 <td class="px-4 py-3 text-sm font-medium text-gray-500">
-                                    {{ sortMode === 'rank' ? rankOf(entry) : '–' }}
+                                    {{ rankOf(entry) }}
                                 </td>
                                 <td class="px-4 py-3">
                                     <div class="flex items-center gap-2">

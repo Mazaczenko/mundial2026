@@ -212,27 +212,51 @@ function isKnockout(stage: string): boolean {
                             <!-- Bet form (can still bet) -->
                             <div v-if="match.can_bet" class="border-t border-gray-100 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-900/50">
                                 <form @submit.prevent="submitBet(match)">
-                                    <div class="flex flex-wrap items-center gap-3">
-                                        <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Twój typ:</span>
-                                        <div class="flex gap-2">
-                                            <label
-                                                v-for="opt in ['1', 'X', '2']"
-                                                :key="opt"
-                                                class="flex cursor-pointer items-center gap-1.5"
-                                            >
-                                                <input
-                                                    type="radio"
-                                                    :name="'prediction_' + match.id"
-                                                    :value="opt"
-                                                    v-model="getOrCreateForm(match).prediction_1x2"
-                                                    class="text-indigo-600 focus:ring-indigo-500"
-                                                />
-                                                <span class="text-sm font-semibold text-gray-700 dark:text-gray-200">{{ opt }}</span>
-                                                <abbr class="cursor-default text-xs text-gray-500 no-underline" :title="optionLabel(opt, match)">
-                                                    {{ opt === 'X' ? 'Remis' : teamCode(optionLabel(opt, match)) }}
-                                                </abbr>
-                                            </label>
-                                        </div>
+                                    <p class="mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">Twój typ:</p>
+                                    <div class="grid grid-cols-3 gap-2">
+                                        <!-- 1 — home -->
+                                        <button
+                                            type="button"
+                                            @click="getOrCreateForm(match).prediction_1x2 = '1'"
+                                            class="flex flex-col items-center gap-1 rounded-lg border-2 px-2 py-3 transition-colors"
+                                            :class="getOrCreateForm(match).prediction_1x2 === '1'
+                                                ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/30'
+                                                : 'border-gray-200 bg-white hover:border-gray-300 dark:border-gray-600 dark:bg-gray-800'"
+                                        >
+                                            <span class="text-xs font-bold text-gray-400 dark:text-gray-500">1</span>
+                                            <span v-if="match.home_team_flag && match.home_team_flag.length <= 4" class="text-3xl leading-none">{{ match.home_team_flag }}</span>
+                                            <img v-else-if="match.home_team_flag" :src="match.home_team_flag" :alt="match.home_team" class="h-7 w-10 object-contain" />
+                                            <span class="text-xs font-bold text-gray-800 dark:text-gray-200">{{ teamCode(match.home_team) }}</span>
+                                        </button>
+
+                                        <!-- X — remis -->
+                                        <button
+                                            type="button"
+                                            @click="getOrCreateForm(match).prediction_1x2 = 'X'"
+                                            class="flex flex-col items-center justify-center gap-1 rounded-lg border-2 px-2 py-3 transition-colors"
+                                            :class="getOrCreateForm(match).prediction_1x2 === 'X'
+                                                ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/30'
+                                                : 'border-gray-200 bg-white hover:border-gray-300 dark:border-gray-600 dark:bg-gray-800'"
+                                        >
+                                            <span class="text-xs font-bold text-gray-400 dark:text-gray-500">X</span>
+                                            <span class="text-2xl font-black leading-none text-gray-500 dark:text-gray-400">=</span>
+                                            <span class="text-xs font-medium text-gray-600 dark:text-gray-300">Remis</span>
+                                        </button>
+
+                                        <!-- 2 — away -->
+                                        <button
+                                            type="button"
+                                            @click="getOrCreateForm(match).prediction_1x2 = '2'"
+                                            class="flex flex-col items-center gap-1 rounded-lg border-2 px-2 py-3 transition-colors"
+                                            :class="getOrCreateForm(match).prediction_1x2 === '2'
+                                                ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/30'
+                                                : 'border-gray-200 bg-white hover:border-gray-300 dark:border-gray-600 dark:bg-gray-800'"
+                                        >
+                                            <span class="text-xs font-bold text-gray-400 dark:text-gray-500">2</span>
+                                            <span v-if="match.away_team_flag && match.away_team_flag.length <= 4" class="text-3xl leading-none">{{ match.away_team_flag }}</span>
+                                            <img v-else-if="match.away_team_flag" :src="match.away_team_flag" :alt="match.away_team" class="h-7 w-10 object-contain" />
+                                            <span class="text-xs font-bold text-gray-800 dark:text-gray-200">{{ teamCode(match.away_team) }}</span>
+                                        </button>
                                     </div>
 
                                     <!-- Exact score (knockout only) -->

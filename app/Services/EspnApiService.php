@@ -18,7 +18,7 @@ class EspnApiService
     public function findEventId(string $date, string $homeTeam, string $awayTeam): ?string
     {
         // ESPN uses US Eastern time — matches at 00:00–05:00 UTC appear under the previous day
-        $dates = [$date, date('Y-m-d', strtotime($date . ' -1 day'))];
+        $dates = [$date, date('Y-m-d', strtotime($date.' -1 day'))];
         $events = array_merge($this->getEventsByDate($dates[0]), $this->getEventsByDate($dates[1]));
 
         foreach ($events as $event) {
@@ -50,7 +50,7 @@ class EspnApiService
      * Returns goals for a given ESPN event ID.
      * Each goal: ['player_name', 'team_side' (home|away), 'minute', 'own_goal']
      *
-     * @return list<array{player_name: string, team_side: string, minute: int|null, own_goal: bool}>
+     * @return list<array{player_name: string, team_side: string, minute: string|null, own_goal: bool}>
      */
     public function getGoals(string $eventId, string $homeTeamName, string $awayTeamName): array
     {
@@ -85,7 +85,7 @@ class EspnApiService
             };
 
             $minuteRaw = $event['clock']['displayValue'] ?? null;
-            $minute = $minuteRaw ? (int) preg_replace('/[^0-9]/', '', $minuteRaw) : null;
+            $minute = $minuteRaw ? $this->parseMinute($minuteRaw) : null;
 
             $isOwnGoal = str_contains(strtolower($event['type']['text'] ?? ''), 'own goal');
 
@@ -132,6 +132,30 @@ class EspnApiService
         }
 
         return count($goals);
+    }
+
+    /**
+     * Parses ESPN's clock displayValue into a human-readable minute string.
+     *
+     * ESPN formats observed:
+     *  - "45'"      → "45"
+     *  - "45+5'"    → "45+5"
+     *  - "45:00"    → "45"
+     *  - "90+3:00"  → "90+3"
+     */
+    private function parseMinute(string $raw): string
+    {
+        $value = trim($raw);
+
+        // Strip trailing apostrophe, e.g. "45'" → "45", "45+5'" → "45+5"
+        $value = rtrim($value, "'");
+
+        // If ESPN used MM:SS format (e.g. "45:00", "90+3:00"), drop the seconds part
+        if (preg_match('/^(\d+(?:\+\d+)?):/', $value, $m)) {
+            return $m[1];
+        }
+
+        return $value;
     }
 
     private function guessTeamSide(string $text, string $homeTeam, string $awayTeam): string

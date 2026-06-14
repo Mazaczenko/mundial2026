@@ -28,7 +28,7 @@ class BetController extends Controller
         $paginator = WorldMatch::query()
             ->with([
                 'bets' => fn ($q) => $q->with('participant:id,name'),
-                'goals' => fn ($q) => $q->with('player')->orderBy('minute'),
+                'goals' => fn ($q) => $q->with('player')->orderByRaw('CAST(minute AS UNSIGNED)'),
             ])
             ->orderBy('kickoff_at')
             ->paginate(15);

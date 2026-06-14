@@ -20,7 +20,7 @@ class MatchGoal extends Model
     /** @var array<string, string> */
     protected $casts = [
         'own_goal' => 'boolean',
-        'minute' => 'integer',
+        'minute' => 'string',
     ];
 
     public function worldMatch(): BelongsTo

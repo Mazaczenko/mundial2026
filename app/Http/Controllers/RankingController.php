@@ -17,8 +17,9 @@ class RankingController extends Controller
     public function index(): Response
     {
         return Inertia::render('Ranking/Index', [
-            'ranking'      => $this->rankingService->getRanking(),
-            'chartData'    => $this->buildChartData(),
+            'ranking'           => $this->rankingService->getRanking(),
+            'chartData'         => $this->buildChartData(),
+            'playedMatchesCount' => WorldMatch::finished()->count(),
         ]);
     }
 

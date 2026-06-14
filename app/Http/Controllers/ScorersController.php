@@ -111,7 +111,7 @@ class ScorersController extends Controller
 
     private function buildGoalsByMinute(Collection $goals): array
     {
-        $withMinute = $goals->whereNotNull('minute');
+        $withMinute = $goals->filter(fn ($g) => $g->minute !== null && $g->minute !== '');
 
         $buckets = [
             ['bucket' => '1–15',  'min' => 1,  'max' => 15,  'count' => 0],
@@ -124,7 +124,10 @@ class ScorersController extends Controller
         ];
 
         foreach ($withMinute as $goal) {
-            $minute = (int) $goal->minute;
+            $minute = $this->resolveMinuteInt((string) $goal->minute);
+            if ($minute === null) {
+                continue;
+            }
             foreach ($buckets as &$bucket) {
                 if ($minute >= $bucket['min'] && $minute <= $bucket['max']) {
                     $bucket['count']++;
@@ -138,6 +141,27 @@ class ScorersController extends Controller
             fn ($b) => ['bucket' => $b['bucket'], 'count' => $b['count']],
             $buckets,
         );
+    }
+
+    /**
+     * Converts a minute string (e.g. "45", "45+5", "90+3") to an integer for bucketing.
+     * Stoppage-time notation "X+Y" keeps the base minute, except at the 90+ boundary
+     * where it returns 91 so the goal lands in the "90+" bucket.
+     */
+    private function resolveMinuteInt(string $raw): ?int
+    {
+        $trimmed = trim($raw);
+        if ($trimmed === '') {
+            return null;
+        }
+
+        if (preg_match('/^(\d+)\+\d+$/', $trimmed, $m)) {
+            $base = (int) $m[1];
+            // 90+X (and any extra-time stoppage like 105+X) → 91 to hit the "90+" bucket
+            return $base >= 90 ? 91 : $base;
+        }
+
+        return is_numeric($trimmed) ? (int) $trimmed : null;
     }
 
     private function buildStats(Collection $goals, int $finishedMatches): array
@@ -177,8 +201,8 @@ class ScorersController extends Controller
             ->first();
 
         $lateDrama = $goals
-            ->whereNotNull('minute')
-            ->filter(fn ($g) => (int) $g->minute >= 80)
+            ->filter(fn ($g) => $g->minute !== null && $g->minute !== '')
+            ->filter(fn ($g) => ($this->resolveMinuteInt((string) $g->minute) ?? 0) >= 80)
             ->count();
 
         return [

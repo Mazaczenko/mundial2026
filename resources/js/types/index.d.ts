@@ -40,7 +40,7 @@ export interface MatchData {
     goals: Array<{
         player_name: string;
         team_side: 'home' | 'away';
-        minute: number | null;
+        minute: string | null;
         own_goal: boolean;
     }>;
 }

@@ -95,7 +95,7 @@ const submit = () => {
                                 autocomplete="email"
                                 autofocus
                                 required
-                                class="field-input pl-9"
+                                class="field-input !pl-9"
                                 :class="{ 'field-error': form.errors.email }"
                                 placeholder="twoj@email.pl"
                             />
@@ -120,7 +120,7 @@ const submit = () => {
                                 :type="showPassword ? 'text' : 'password'"
                                 autocomplete="current-password"
                                 required
-                                class="field-input pl-9 pr-10"
+                                class="field-input !pl-9 !pr-10"
                                 :class="{ 'field-error': form.errors.password }"
                                 placeholder="••••••••"
                             />

@@ -9,6 +9,7 @@ use App\Models\Participant;
 use App\Models\WorldMatch;
 use App\Services\BetService;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
@@ -20,30 +21,86 @@ class BetController extends Controller
         private readonly BetService $betService,
     ) {}
 
-    public function index(): Response
+    public function index(Request $request): Response
     {
         /** @var Participant $user */
         $user = Auth::user();
 
-        $paginator = WorldMatch::query()
+        $tab = $request->input('tab', 'today');
+        if (! in_array($tab, ['today', 'upcoming', 'past'])) {
+            $tab = 'today';
+        }
+
+        $team = (string) $request->input('team', '');
+        $bet = (string) $request->input('bet', '');
+        $result = (string) $request->input('result', '');
+
+        $warsawNow = Carbon::now('Europe/Warsaw');
+        $todayStart = $warsawNow->copy()->startOfDay()->utc();
+        $todayEnd = $warsawNow->copy()->endOfDay()->utc();
+
+        // Tab counts (no team/bet/result filters)
+        $tabCounts = [
+            'today' => WorldMatch::query()
+                ->whereBetween('kickoff_at', [$todayStart, $todayEnd])
+                ->count(),
+            'upcoming' => WorldMatch::query()
+                ->where('kickoff_at', '>', $todayEnd)
+                ->count(),
+            'past' => WorldMatch::query()
+                ->where('kickoff_at', '<', $todayStart)
+                ->count(),
+        ];
+
+        // Base query for the selected tab
+        $query = WorldMatch::query()
             ->with([
                 'bets' => fn ($q) => $q->with('participant:id,name'),
-                'goals' => fn ($q) => $q->with('player')->orderByRaw('CAST(minute AS UNSIGNED)'),
-            ])
-            ->orderBy('kickoff_at')
-            ->paginate(15);
+                'goals' => fn ($q) => $q->orderByRaw('CAST(minute AS UNSIGNED)'),
+            ]);
 
-        $matchesByDate = $paginator->getCollection()->map(function (WorldMatch $match) use ($user) {
+        match ($tab) {
+            'today' => $query->whereBetween('kickoff_at', [$todayStart, $todayEnd])
+                ->orderBy('kickoff_at'),
+            'upcoming' => $query->where('kickoff_at', '>', $todayEnd)
+                ->orderBy('kickoff_at'),
+            'past' => $query->where('kickoff_at', '<', $todayStart)
+                ->orderByDesc('kickoff_at'),
+        };
+
+        // Team filter
+        if ($team !== '') {
+            $query->where(function ($q) use ($team) {
+                $q->where('home_team', 'like', '%'.$team.'%')
+                    ->orWhere('away_team', 'like', '%'.$team.'%');
+            });
+        }
+
+        // Bet filter (DB-level)
+        if ($bet === 'placed') {
+            $query->whereHas('bets', fn ($q) => $q->where('participant_id', $user->id));
+        } elseif ($bet === 'missing') {
+            $query->whereDoesntHave('bets', fn ($q) => $q->where('participant_id', $user->id));
+        } elseif (in_array($bet, ['1', 'X', '2'])) {
+            $query->whereHas('bets', fn ($q) => $q
+                ->where('participant_id', $user->id)
+                ->where('prediction_1x2', $bet));
+        }
+
+        $matches = $query->get();
+
+        // Map matches to MatchData
+        $mapped = $matches->map(function (WorldMatch $match) use ($user) {
             $myBet = $match->bets->firstWhere('participant_id', $user->id);
             $canBet = $match->canBet();
-            $isVisible = ! $canBet; // others' bets visible after betting deadline
+            $isVisible = ! $canBet;
 
             $othersBets = $isVisible
                 ? $match->bets
                     ->where('participant_id', '!=', $user->id)
-                    ->map(fn ($bet) => [
-                        'participant_name' => $bet->participant->name,
-                        'prediction_1x2' => $bet->prediction_1x2,
+                    ->map(fn ($b) => [
+                        'participant_name' => $b->participant->name,
+                        'prediction_1x2' => $b->prediction_1x2,
                     ])
                     ->values()
                 : collect();
@@ -89,21 +146,38 @@ class BetController extends Controller
                     'own_goal' => $g->own_goal,
                 ])->values(),
             ];
-        })->groupBy(function ($match) {
+        });
+
+        // Result filter (PHP-level)
+        if ($result === 'correct') {
+            $mapped = $mapped->filter(fn ($m) => ($m['my_bet']['is_correct'] ?? null) === true);
+        } elseif ($result === 'wrong') {
+            $mapped = $mapped->filter(fn ($m) => ($m['my_bet']['is_correct'] ?? null) === false);
+        } elseif ($result === 'pending') {
+            $mapped = $mapped->filter(fn ($m) => $m['my_bet'] !== null && ($m['my_bet']['is_correct'] ?? null) === null);
+        }
+
+        // Group by date (Warsaw timezone)
+        $matchesByDate = $mapped->groupBy(function ($match) {
             return Carbon::parse($match['kickoff_at'])
                 ->setTimezone('Europe/Warsaw')
                 ->format('Y-m-d');
         });
 
+        // All teams for the filter select
+        $teams = WorldMatch::selectRaw('home_team as team')
+            ->union(WorldMatch::selectRaw('away_team as team'))
+            ->orderBy('team')
+            ->pluck('team')
+            ->unique()
+            ->values();
+
         return Inertia::render('Bets/Index', [
             'matchesByDate' => $matchesByDate,
-            'pagination' => [
-                'current_page' => $paginator->currentPage(),
-                'last_page' => $paginator->lastPage(),
-                'total' => $paginator->total(),
-                'from' => $paginator->firstItem(),
-                'to' => $paginator->lastItem(),
-            ],
+            'tab' => $tab,
+            'tabCounts' => $tabCounts,
+            'filters' => compact('team', 'bet', 'result'),
+            'teams' => $teams,
             'participant' => $user,
         ]);
     }

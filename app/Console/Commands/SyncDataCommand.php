@@ -18,12 +18,12 @@ use Illuminate\Support\Facades\Artisan;
 class SyncDataCommand extends Command
 {
     protected $signature = 'mundial:sync
-                            {--standings : Synchronizuj tabele grup}
-                            {--scorers : Synchronizuj top strzelców}
-                            {--players : Synchronizuj składy drużyn}
-                            {--results : Pobierz wyniki wszystkich rozegranych meczów}
-                            {--goals : Pobierz strzelców goli dla zakończonych meczów}
-                            {--all : Synchronizuj wszystko}';
+        {--standings : Synchronizuj tabele grup}
+        {--scorers : Synchronizuj top strzelców}
+        {--players : Synchronizuj składy drużyn}
+        {--results : Pobierz wyniki wszystkich rozegranych meczów}
+        {--goals : Pobierz strzelców goli dla zakończonych meczów}
+        {--all : Synchronizuj wszystko}';
 
     protected $description = 'Ręczna synchronizacja danych z football-data.org';
 

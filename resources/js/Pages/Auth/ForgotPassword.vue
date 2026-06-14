@@ -89,7 +89,7 @@ const submit = () => {
                                 autocomplete="email"
                                 autofocus
                                 required
-                                class="field-input pl-9"
+                                class="field-input !pl-9"
                                 :class="{ 'field-error': form.errors.email }"
                                 placeholder="twoj@email.pl"
                             />

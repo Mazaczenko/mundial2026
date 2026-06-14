@@ -6,19 +6,11 @@ import type { MatchData } from '@/types';
 
 interface Props {
     matchesByDate: Record<string, MatchData[]>;
-    pagination: {
-        current_page: number;
-        last_page: number;
-        total: number;
-        from: number | null;
-        to: number | null;
-    };
-    participant: {
-        id: number;
-        name: string;
-        eliminated: boolean;
-        paid_entry: boolean;
-    };
+    tab: 'today' | 'upcoming' | 'past';
+    tabCounts: { today: number; upcoming: number; past: number };
+    filters: { team: string; bet: string; result: string };
+    teams: string[];
+    participant: { id: number; name: string; eliminated: boolean; paid_entry: boolean };
 }
 
 const props = defineProps<Props>();
@@ -103,13 +95,59 @@ function submitBet(match: MatchData) {
     }
 }
 
-function goToPage(page: number) {
-    router.get(route('bets.index'), { page }, { preserveScroll: false });
-}
-
 function isKnockout(stage: string): boolean {
     return stage !== 'group';
 }
+
+// --- Tabs ---
+const tabs: Array<{ key: 'today' | 'upcoming' | 'past'; label: string }> = [
+    { key: 'today',    label: 'Dzisiaj' },
+    { key: 'upcoming', label: 'Nadchodzące' },
+    { key: 'past',     label: 'Poprzednie' },
+];
+
+function goToTab(tabKey: 'today' | 'upcoming' | 'past') {
+    router.get(route('bets.index'), { tab: tabKey }, { preserveScroll: false });
+}
+
+// --- Filters ---
+const teamFilter   = ref(props.filters.team);
+const betFilter    = ref(props.filters.bet);
+const resultFilter = ref(props.filters.result);
+
+function applyFilters() {
+    router.get(
+        route('bets.index'),
+        {
+            tab:    props.tab,
+            team:   teamFilter.value,
+            bet:    betFilter.value,
+            result: resultFilter.value,
+        },
+        { preserveScroll: true },
+    );
+}
+
+const hasActiveFilters = computed(
+    () => teamFilter.value !== '' || betFilter.value !== '' || resultFilter.value !== '',
+);
+
+function clearFilters() {
+    teamFilter.value   = '';
+    betFilter.value    = '';
+    resultFilter.value = '';
+    router.get(route('bets.index'), { tab: props.tab }, { preserveScroll: false });
+}
+
+// Empty state message
+const emptyMessage = computed(() => {
+    if (hasActiveFilters.value) {
+        return 'Brak meczów pasujących do wybranych filtrów.';
+    }
+    if (props.tab === 'today') return 'Brak meczów na dziś.';
+    if (props.tab === 'upcoming') return 'Brak nadchodzących meczów.';
+    return 'Brak poprzednich meczów.';
+});
 </script>
 
 <template>
@@ -119,10 +157,89 @@ function isKnockout(stage: string): boolean {
         <div class="py-6">
             <div class="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
 
-<div v-if="participant.eliminated" class="mb-4 rounded-md bg-orange-50 border border-orange-200 p-4 text-sm text-orange-800 dark:bg-orange-900/20 dark:text-orange-300">
+                <!-- Eliminated warning -->
+                <div v-if="participant.eliminated" class="mb-4 rounded-md bg-orange-50 border border-orange-200 p-4 text-sm text-orange-800 dark:bg-orange-900/20 dark:text-orange-300">
                     Zostałeś wyeliminowany z oficjalnego rankingu (3 nieoobstawione mecze). Możesz nadal typować dla zabawy.
                 </div>
 
+                <!-- Tabs -->
+                <div class="mb-4 flex gap-1 rounded-lg bg-gray-100 p-1 dark:bg-gray-800">
+                    <button
+                        v-for="t in tabs"
+                        :key="t.key"
+                        @click="goToTab(t.key)"
+                        class="flex flex-1 items-center justify-center gap-1.5 rounded-md px-3 py-2 text-sm font-medium transition-colors"
+                        :class="tab === t.key
+                            ? 'bg-white text-indigo-600 shadow-sm dark:bg-gray-700 dark:text-indigo-400'
+                            : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'"
+                    >
+                        {{ t.label }}
+                        <span
+                            class="inline-flex min-w-[1.25rem] items-center justify-center rounded-full px-1.5 py-0.5 text-xs font-semibold"
+                            :class="tab === t.key
+                                ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300'
+                                : 'bg-gray-200 text-gray-500 dark:bg-gray-600 dark:text-gray-400'"
+                        >
+                            {{ tabCounts[t.key] }}
+                        </span>
+                    </button>
+                </div>
+
+                <!-- Filters -->
+                <div class="mb-6 flex flex-col gap-3 rounded-lg border border-gray-200 bg-white p-3 shadow-sm dark:border-gray-700 dark:bg-gray-800 sm:flex-row sm:items-center">
+                    <!-- Team -->
+                    <div class="flex-1">
+                        <select
+                            v-model="teamFilter"
+                            @change="applyFilters"
+                            class="w-full rounded-md border border-gray-300 bg-white py-1.5 pl-3 pr-8 text-sm text-gray-700 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200"
+                        >
+                            <option value="">Wszystkie drużyny</option>
+                            <option v-for="team in teams" :key="team" :value="team">{{ team }}</option>
+                        </select>
+                    </div>
+
+                    <!-- Bet type -->
+                    <div class="flex-1">
+                        <select
+                            v-model="betFilter"
+                            @change="applyFilters"
+                            class="w-full rounded-md border border-gray-300 bg-white py-1.5 pl-3 pr-8 text-sm text-gray-700 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200"
+                        >
+                            <option value="">Wszystkie zakłady</option>
+                            <option value="1">Typ: 1</option>
+                            <option value="X">Typ: X</option>
+                            <option value="2">Typ: 2</option>
+                            <option value="placed">Obstawione</option>
+                            <option value="missing">Nieobstawione</option>
+                        </select>
+                    </div>
+
+                    <!-- Result -->
+                    <div class="flex-1">
+                        <select
+                            v-model="resultFilter"
+                            @change="applyFilters"
+                            class="w-full rounded-md border border-gray-300 bg-white py-1.5 pl-3 pr-8 text-sm text-gray-700 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200"
+                        >
+                            <option value="">Wszystkie wyniki</option>
+                            <option value="correct">Trafione ✓</option>
+                            <option value="wrong">Chybione ✗</option>
+                            <option value="pending">Oczekujące</option>
+                        </select>
+                    </div>
+
+                    <!-- Clear filters -->
+                    <button
+                        v-if="hasActiveFilters"
+                        @click="clearFilters"
+                        class="shrink-0 rounded-md border border-gray-300 px-3 py-1.5 text-sm text-gray-500 hover:border-gray-400 hover:text-gray-700 dark:border-gray-600 dark:text-gray-400 dark:hover:text-gray-200"
+                    >
+                        Wyczyść
+                    </button>
+                </div>
+
+                <!-- Match list -->
                 <div v-for="(matches, date) in matchesByDate" :key="date" class="mb-8">
                     <h2 class="mb-3 text-lg font-semibold capitalize text-gray-700 dark:text-gray-300">
                         {{ formatDate(matches[0].kickoff_at) }}
@@ -356,30 +473,11 @@ function isKnockout(stage: string): boolean {
                     </div>
                 </div>
 
+                <!-- Empty state -->
                 <div v-if="Object.keys(matchesByDate).length === 0" class="rounded-lg bg-white p-8 text-center text-gray-500 shadow dark:bg-gray-800">
-                    Brak meczów do wyświetlenia. Admin musi zaimportować terminarz (<code>mundial:import-fixtures</code>).
+                    {{ emptyMessage }}
                 </div>
 
-                <!-- Pagination -->
-                <div v-if="pagination.last_page > 1" class="mt-6 flex items-center justify-between">
-                    <p class="text-sm text-gray-500 dark:text-gray-400">
-                        Mecze {{ pagination.from }}–{{ pagination.to }} z {{ pagination.total }}
-                    </p>
-                    <div class="flex gap-1">
-                        <button
-                            v-for="page in pagination.last_page"
-                            :key="page"
-                            @click="goToPage(page)"
-                            :disabled="page === pagination.current_page"
-                            class="min-w-[2rem] rounded px-2.5 py-1 text-sm font-medium transition-colors"
-                            :class="page === pagination.current_page
-                                ? 'bg-indigo-600 text-white cursor-default'
-                                : 'bg-white text-gray-700 hover:bg-gray-100 shadow-sm dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700'"
-                        >
-                            {{ page }}
-                        </button>
-                    </div>
-                </div>
             </div>
         </div>
     </AuthenticatedLayout>

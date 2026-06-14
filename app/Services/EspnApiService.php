@@ -135,20 +135,19 @@ class EspnApiService
     }
 
     /**
-     * Parses ESPN's clock displayValue into a human-readable minute string.
+     * Parses ESPN's clock displayValue into a clean minute string.
      *
      * ESPN formats observed:
-     *  - "45'"      → "45"
-     *  - "45+5'"    → "45+5"
-     *  - "45:00"    → "45"
-     *  - "90+3:00"  → "90+3"
+     *  - "59'"       → "59"
+     *  - "45'+4'"    → "45+4"
+     *  - "90'+3'"    → "90+3"
+     *  - "45:00"     → "45"
+     *  - "90+3:00"   → "90+3"
      */
     private function parseMinute(string $raw): string
     {
-        $value = trim($raw);
-
-        // Strip trailing apostrophe, e.g. "45'" → "45", "45+5'" → "45+5"
-        $value = rtrim($value, "'");
+        // Remove all apostrophes (ESPN uses them as minute markers: "90'+3'")
+        $value = str_replace("'", '', trim($raw));
 
         // If ESPN used MM:SS format (e.g. "45:00", "90+3:00"), drop the seconds part
         if (preg_match('/^(\d+(?:\+\d+)?):/', $value, $m)) {

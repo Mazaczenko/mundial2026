@@ -150,14 +150,16 @@ class ScorersController extends Controller
      */
     private function resolveMinuteInt(string $raw): ?int
     {
-        $trimmed = trim($raw);
+        // Strip apostrophes defensively (old DB records may have "90'+3" from ESPN)
+        $trimmed = str_replace("'", '', trim($raw));
+
         if ($trimmed === '') {
             return null;
         }
 
-        if (preg_match('/^(\d+)\+\d+$/', $trimmed, $m)) {
+        if (preg_match('/^(\d+)\+(\d+)$/', $trimmed, $m)) {
             $base = (int) $m[1];
-            // 90+X (and any extra-time stoppage like 105+X) → 91 to hit the "90+" bucket
+            // 45+X → 45 (stays in 31-45), 90+X → 91 (hits the "90+" bucket)
             return $base >= 90 ? 91 : $base;
         }
 

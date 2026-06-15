@@ -80,10 +80,12 @@ class Participant extends Authenticatable implements FilamentUser
 
     public function pointsTotal(): int
     {
-        return (int) $this->bets()
+        $base = (int) $this->bets()
             ->where('is_correct', true)
             ->whereHas('match', fn ($q) => $q->finished())
             ->count();
+
+        return $base + $this->exactScoreCount();
     }
 
     public function missedMatchesCount(): int

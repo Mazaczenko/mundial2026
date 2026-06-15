@@ -52,6 +52,7 @@ export interface RankingEntry {
     exact_scores: number;
     group_correct: number;
     scorer_correct: boolean;
+    top_scorer: string | null;
     paid_entry: boolean;
     eliminated: boolean;
     bets_count: number;

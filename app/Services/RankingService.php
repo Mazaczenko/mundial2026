@@ -31,6 +31,7 @@ class RankingService
                 'exact_scores' => $participant->exactScoreCount(),
                 'group_correct' => $participant->groupCorrectCount(),
                 'scorer_correct' => $participant->scorerCorrect(),
+                'top_scorer' => $participant->tiebreakerPick?->top_scorer_name,
                 'paid_entry' => $participant->paid_entry,
                 'eliminated' => $participant->eliminated,
                 'bets_count' => $participant->bets->count(),

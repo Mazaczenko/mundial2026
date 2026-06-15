@@ -273,6 +273,9 @@ function toggleSort(col: SortCol) {
                                         Pominięte<SortIcon col="missed_count" :active-col="sortCol" :dir="sortDir" />
                                     </button>
                                 </th>
+                                <th class="hidden px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500 lg:table-cell">
+                                    Król strzelców
+                                </th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
@@ -306,10 +309,19 @@ function toggleSort(col: SortCol) {
                                         {{ entry.missed_count }}
                                     </span>
                                 </td>
+                                <td class="hidden px-4 py-3 lg:table-cell">
+                                    <span v-if="entry.top_scorer" class="inline-flex items-center gap-1 text-sm text-gray-700 dark:text-gray-300">
+                                        <svg v-if="entry.scorer_correct" class="h-3.5 w-3.5 shrink-0 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                                        </svg>
+                                        {{ entry.top_scorer }}
+                                    </span>
+                                    <span v-else class="text-sm text-gray-300 dark:text-gray-600">—</span>
+                                </td>
                             </tr>
 
                             <tr v-if="paginated.length === 0">
-                                <td colspan="5" class="px-4 py-8 text-center text-sm text-gray-400">
+                                <td colspan="6" class="px-4 py-8 text-center text-sm text-gray-400">
                                     Brak wyników.
                                 </td>
                             </tr>
@@ -355,6 +367,7 @@ function toggleSort(col: SortCol) {
                                     <td class="px-4 py-3 text-center text-sm">{{ entry.points }}</td>
                                     <td class="hidden px-4 py-3 text-center text-sm sm:table-cell">{{ entry.bets_count }}</td>
                                     <td class="hidden px-4 py-3 text-center text-sm sm:table-cell">{{ entry.missed_count }}</td>
+                                    <td class="hidden px-4 py-3 text-sm text-gray-400 lg:table-cell">{{ entry.top_scorer ?? '—' }}</td>
                                 </tr>
                             </tbody>
                         </table>

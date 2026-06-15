@@ -1,21 +1,21 @@
 {
-  "_AuthenticatedLayout.vue_vue_type_script_setup_true_lang-DL0SnLzv.js": {
-    "file": "assets/AuthenticatedLayout.vue_vue_type_script_setup_true_lang-DL0SnLzv.js",
+  "_AuthenticatedLayout.vue_vue_type_script_setup_true_lang-CwhLT0UA.js": {
+    "file": "assets/AuthenticatedLayout.vue_vue_type_script_setup_true_lang-CwhLT0UA.js",
     "name": "AuthenticatedLayout.vue_vue_type_script_setup_true_lang",
     "imports": [
       "resources/js/app.ts",
-      "_PwaInstallBanner.vue_vue_type_script_setup_true_lang-BS3cakOi.js"
+      "_PwaInstallBanner.vue_vue_type_script_setup_true_lang-DEN1_YeZ.js"
     ]
   },
-  "_InputError.vue_vue_type_script_setup_true_lang-Bz9SYDkn.js": {
-    "file": "assets/InputError.vue_vue_type_script_setup_true_lang-Bz9SYDkn.js",
+  "_InputError.vue_vue_type_script_setup_true_lang-C7MAobAJ.js": {
+    "file": "assets/InputError.vue_vue_type_script_setup_true_lang-C7MAobAJ.js",
     "name": "InputError.vue_vue_type_script_setup_true_lang",
     "imports": [
       "resources/js/app.ts"
     ]
   },
-  "_PwaInstallBanner.vue_vue_type_script_setup_true_lang-BS3cakOi.js": {
-    "file": "assets/PwaInstallBanner.vue_vue_type_script_setup_true_lang-BS3cakOi.js",
+  "_PwaInstallBanner.vue_vue_type_script_setup_true_lang-DEN1_YeZ.js": {
+    "file": "assets/PwaInstallBanner.vue_vue_type_script_setup_true_lang-DEN1_YeZ.js",
     "name": "PwaInstallBanner.vue_vue_type_script_setup_true_lang",
     "imports": [
       "resources/js/app.ts"
@@ -25,8 +25,8 @@
     "file": "assets/_plugin-vue_export-helper-DlAUqK2U.js",
     "name": "_plugin-vue_export-helper"
   },
-  "_index-wn49N3Bt.js": {
-    "file": "assets/index-wn49N3Bt.js",
+  "_index-o5VfD44N.js": {
+    "file": "assets/index-o5VfD44N.js",
     "name": "index",
     "imports": [
       "resources/js/app.ts"
@@ -43,13 +43,13 @@
     "isDynamicEntry": true
   },
   "resources/js/Pages/Auth/ForgotPassword.vue": {
-    "file": "assets/ForgotPassword-C3z4dcK_.js",
+    "file": "assets/ForgotPassword-B8ZDP4wd.js",
     "name": "ForgotPassword",
     "src": "resources/js/Pages/Auth/ForgotPassword.vue",
     "isDynamicEntry": true,
     "imports": [
       "resources/js/app.ts",
-      "_InputError.vue_vue_type_script_setup_true_lang-Bz9SYDkn.js",
+      "_InputError.vue_vue_type_script_setup_true_lang-C7MAobAJ.js",
       "__plugin-vue_export-helper-DlAUqK2U.js"
     ],
     "css": [
@@ -57,14 +57,14 @@
     ]
   },
   "resources/js/Pages/Auth/Login.vue": {
-    "file": "assets/Login-Blwcl37O.js",
+    "file": "assets/Login-Dp7hyZK6.js",
     "name": "Login",
     "src": "resources/js/Pages/Auth/Login.vue",
     "isDynamicEntry": true,
     "imports": [
       "resources/js/app.ts",
-      "_InputError.vue_vue_type_script_setup_true_lang-Bz9SYDkn.js",
-      "_PwaInstallBanner.vue_vue_type_script_setup_true_lang-BS3cakOi.js",
+      "_InputError.vue_vue_type_script_setup_true_lang-C7MAobAJ.js",
+      "_PwaInstallBanner.vue_vue_type_script_setup_true_lang-DEN1_YeZ.js",
       "__plugin-vue_export-helper-DlAUqK2U.js"
     ],
     "css": [
@@ -72,13 +72,13 @@
     ]
   },
   "resources/js/Pages/Auth/ResetPassword.vue": {
-    "file": "assets/ResetPassword-DDGq1wNz.js",
+    "file": "assets/ResetPassword-DeDgG0Ac.js",
     "name": "ResetPassword",
     "src": "resources/js/Pages/Auth/ResetPassword.vue",
     "isDynamicEntry": true,
     "imports": [
       "resources/js/app.ts",
-      "_InputError.vue_vue_type_script_setup_true_lang-Bz9SYDkn.js",
+      "_InputError.vue_vue_type_script_setup_true_lang-C7MAobAJ.js",
       "__plugin-vue_export-helper-DlAUqK2U.js"
     ],
     "css": [
@@ -86,81 +86,92 @@
     ]
   },
   "resources/js/Pages/Bets/Index.vue": {
-    "file": "assets/Index-Brwdvj5H.js",
+    "file": "assets/Index-jcphAw51.js",
     "name": "Index",
     "src": "resources/js/Pages/Bets/Index.vue",
     "isDynamicEntry": true,
     "imports": [
       "resources/js/app.ts",
-      "_AuthenticatedLayout.vue_vue_type_script_setup_true_lang-DL0SnLzv.js",
+      "_AuthenticatedLayout.vue_vue_type_script_setup_true_lang-CwhLT0UA.js",
       "_teamCode-BEmXBcoa.js",
-      "_PwaInstallBanner.vue_vue_type_script_setup_true_lang-BS3cakOi.js"
+      "_PwaInstallBanner.vue_vue_type_script_setup_true_lang-DEN1_YeZ.js"
+    ]
+  },
+  "resources/js/Pages/Knockout/Index.vue": {
+    "file": "assets/Index-BzsRWlvt.js",
+    "name": "Index",
+    "src": "resources/js/Pages/Knockout/Index.vue",
+    "isDynamicEntry": true,
+    "imports": [
+      "_AuthenticatedLayout.vue_vue_type_script_setup_true_lang-CwhLT0UA.js",
+      "resources/js/app.ts",
+      "_PwaInstallBanner.vue_vue_type_script_setup_true_lang-DEN1_YeZ.js"
     ]
   },
   "resources/js/Pages/Ranking/Index.vue": {
-    "file": "assets/Index-sGzBCy_M.js",
+    "file": "assets/Index-iP4p9C8X.js",
     "name": "Index",
     "src": "resources/js/Pages/Ranking/Index.vue",
     "isDynamicEntry": true,
     "imports": [
       "resources/js/app.ts",
-      "_AuthenticatedLayout.vue_vue_type_script_setup_true_lang-DL0SnLzv.js",
-      "_index-wn49N3Bt.js",
-      "_PwaInstallBanner.vue_vue_type_script_setup_true_lang-BS3cakOi.js"
+      "_AuthenticatedLayout.vue_vue_type_script_setup_true_lang-CwhLT0UA.js",
+      "_index-o5VfD44N.js",
+      "_PwaInstallBanner.vue_vue_type_script_setup_true_lang-DEN1_YeZ.js"
     ]
   },
   "resources/js/Pages/Scorers/Index.vue": {
-    "file": "assets/Index-4-bF42ff.js",
+    "file": "assets/Index-DpsBXkwY.js",
     "name": "Index",
     "src": "resources/js/Pages/Scorers/Index.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_AuthenticatedLayout.vue_vue_type_script_setup_true_lang-DL0SnLzv.js",
+      "_AuthenticatedLayout.vue_vue_type_script_setup_true_lang-CwhLT0UA.js",
       "resources/js/app.ts",
-      "_index-wn49N3Bt.js",
-      "_PwaInstallBanner.vue_vue_type_script_setup_true_lang-BS3cakOi.js"
+      "_index-o5VfD44N.js",
+      "_PwaInstallBanner.vue_vue_type_script_setup_true_lang-DEN1_YeZ.js"
     ]
   },
   "resources/js/Pages/Squads/Index.vue": {
-    "file": "assets/Index-DKPsstok.js",
+    "file": "assets/Index-BFJIkWVH.js",
     "name": "Index",
     "src": "resources/js/Pages/Squads/Index.vue",
     "isDynamicEntry": true,
     "imports": [
       "resources/js/app.ts",
-      "_AuthenticatedLayout.vue_vue_type_script_setup_true_lang-DL0SnLzv.js",
-      "_PwaInstallBanner.vue_vue_type_script_setup_true_lang-BS3cakOi.js"
+      "_AuthenticatedLayout.vue_vue_type_script_setup_true_lang-CwhLT0UA.js",
+      "_PwaInstallBanner.vue_vue_type_script_setup_true_lang-DEN1_YeZ.js"
     ]
   },
   "resources/js/Pages/Standings/Index.vue": {
-    "file": "assets/Index-B6QUYj5m.js",
+    "file": "assets/Index-UHfpdcIp.js",
     "name": "Index",
     "src": "resources/js/Pages/Standings/Index.vue",
     "isDynamicEntry": true,
     "imports": [
-      "_AuthenticatedLayout.vue_vue_type_script_setup_true_lang-DL0SnLzv.js",
+      "_AuthenticatedLayout.vue_vue_type_script_setup_true_lang-CwhLT0UA.js",
       "_teamCode-BEmXBcoa.js",
       "resources/js/app.ts",
       "__plugin-vue_export-helper-DlAUqK2U.js",
-      "_PwaInstallBanner.vue_vue_type_script_setup_true_lang-BS3cakOi.js"
+      "_PwaInstallBanner.vue_vue_type_script_setup_true_lang-DEN1_YeZ.js"
     ],
     "css": [
       "assets/Index-DRrmErfO.css"
     ]
   },
   "resources/js/Pages/Tiebreaker/Show.vue": {
-    "file": "assets/Show-p7FPUerv.js",
+    "file": "assets/Show-CUpkjThc.js",
     "name": "Show",
     "src": "resources/js/Pages/Tiebreaker/Show.vue",
     "isDynamicEntry": true,
     "imports": [
       "resources/js/app.ts",
-      "_AuthenticatedLayout.vue_vue_type_script_setup_true_lang-DL0SnLzv.js",
-      "_PwaInstallBanner.vue_vue_type_script_setup_true_lang-BS3cakOi.js"
+      "_AuthenticatedLayout.vue_vue_type_script_setup_true_lang-CwhLT0UA.js",
+      "_PwaInstallBanner.vue_vue_type_script_setup_true_lang-DEN1_YeZ.js"
     ]
   },
   "resources/js/app.ts": {
-    "file": "assets/app-XMOgBNbs.js",
+    "file": "assets/app-CLF5aXqq.js",
     "name": "app",
     "src": "resources/js/app.ts",
     "isEntry": true,
@@ -170,6 +181,7 @@
       "resources/js/Pages/Auth/Login.vue",
       "resources/js/Pages/Auth/ResetPassword.vue",
       "resources/js/Pages/Bets/Index.vue",
+      "resources/js/Pages/Knockout/Index.vue",
       "resources/js/Pages/Ranking/Index.vue",
       "resources/js/Pages/Scorers/Index.vue",
       "resources/js/Pages/Squads/Index.vue",
@@ -177,7 +189,7 @@
       "resources/js/Pages/Tiebreaker/Show.vue"
     ],
     "css": [
-      "assets/app-Btj-7t_f.css"
+      "assets/app-R1uwc_oq.css"
     ]
   }
 }

@@ -46,6 +46,11 @@ class FetchFinishedMatchResultsJob implements ShouldQueue
                 'status' => 'finished',
                 'score_home' => $fixture['score']['fullTime']['home'] ?? null,
                 'score_away' => $fixture['score']['fullTime']['away'] ?? null,
+                'result_type' => match ($fixture['score']['duration'] ?? 'REGULAR') {
+                    'EXTRA_TIME' => 'AET',
+                    'PENALTY_SHOOTOUT' => 'PEN',
+                    default => 'FT',
+                },
             ]);
 
             $this->syncGoals($espnApi, $match);

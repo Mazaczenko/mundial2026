@@ -23,6 +23,7 @@ class WorldMatch extends Model
         'status',
         'score_home',
         'score_away',
+        'result_type',
         'reminder_sent',
     ];
 

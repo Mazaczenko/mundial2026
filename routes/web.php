@@ -10,7 +10,12 @@ use App\Http\Controllers\ScorersController;
 use App\Http\Controllers\SquadController;
 use App\Http\Controllers\StandingsController;
 use App\Http\Controllers\TiebreakerController;
+use App\Http\Controllers\UnsubscribeController;
 use Illuminate\Support\Facades\Route;
+
+Route::get('/unsubscribe/{participant}', UnsubscribeController::class)
+    ->name('unsubscribe')
+    ->middleware('signed');
 
 Route::middleware('guest')->group(function () {
     Route::get('/login', [LoginController::class, 'show'])->name('login');

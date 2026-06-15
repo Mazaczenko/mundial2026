@@ -33,7 +33,7 @@ class SendMatchRemindersJob implements ShouldQueue
                 ->get();
 
             foreach ($participants as $participant) {
-                $participant->notify(new MatchReminderNotification($match));
+                $participant->notify(new MatchReminderNotification($match, $participant));
             }
 
             $match->update(['reminder_sent' => true]);

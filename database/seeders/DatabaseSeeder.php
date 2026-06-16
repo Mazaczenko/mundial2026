@@ -25,7 +25,7 @@ class DatabaseSeeder extends Seeder
         ];
 
         foreach ($admins as $data) {
-            Participant::updateOrCreate(
+            Participant::firstOrCreate(
                 ['email' => $data['email']],
                 $data,
             );

@@ -2,8 +2,8 @@
 
 namespace Database\Seeders;
 
+use App\Models\Participant;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\DB;
 
 class ParticipantsSeeder extends Seeder
 {
@@ -101,20 +101,20 @@ class ParticipantsSeeder extends Seeder
 
     public function run(): void
     {
-        $now = now();
-
         foreach ($this->emails as $email) {
             $name = explode('@', $email)[0];
 
-            DB::table('participants')->updateOrInsert(
-                ['email' => $email],
-                [
-                    'name'       => $name,
-                    'password'   => 'ustaw_se',
-                    'updated_at' => $now,
-                    'created_at' => $now,
-                ],
-            );
+            $existing = Participant::where('email', $email)->first();
+
+            if ($existing) {
+                $existing->update(['name' => $name]);
+            } else {
+                Participant::create([
+                    'name'     => $name,
+                    'email'    => $email,
+                    'password' => 'ustaw_se',
+                ]);
+            }
         }
     }
 }

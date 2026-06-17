@@ -22,7 +22,11 @@ class MatchResultsController extends Controller
         $stageFilter  = $request->input('stage', '');
         $resultFilter = $request->input('result', '');
 
-        $totalParticipants = Participant::count();
+        $allowedPerPage = [5, 10, 15, 20, 25, 50];
+        $perPage = in_array((int) $request->input('per_page', 10), $allowedPerPage)
+            ? (int) $request->input('per_page', 10)
+            : 10;
+        $page = max(1, (int) $request->input('page', 1));
 
         // --- Global stats (always unfiltered) ---
         $allFinishedIds = WorldMatch::finished()->pluck('id');
@@ -79,7 +83,7 @@ class MatchResultsController extends Controller
             $matches = $matches->filter(fn ($m) => ! isset($myBets[$m->id]));
         }
 
-        $matchData = $matches->map(function (WorldMatch $match) use ($myBets, $totalParticipants) {
+        $matchData = $matches->map(function (WorldMatch $match) use ($myBets) {
             $myBet = $myBets[$match->id] ?? null;
 
             return [
@@ -94,8 +98,8 @@ class MatchResultsController extends Controller
                 'score_home'         => $match->score_home,
                 'score_away'         => $match->score_away,
                 'result_type'        => $match->result_type,
-                'correct_bets'       => $match->bets->where('is_correct', true)->count(),
-                'total_participants' => $totalParticipants,
+                'correct_bets' => $match->bets->where('is_correct', true)->count(),
+                'total_bets'   => $match->bets->count(),
                 'my_bet'             => $myBet ? [
                     'prediction_1x2' => $myBet->prediction_1x2,
                     'is_correct'     => $myBet->is_correct,
@@ -108,6 +112,22 @@ class MatchResultsController extends Controller
                 ])->values(),
             ];
         })->values();
+
+        // --- Paginate ---
+        $total    = $matchData->count();
+        $lastPage = max(1, (int) ceil($total / $perPage));
+        $page     = min($page, $lastPage);
+
+        $pagination = [
+            'total'        => $total,
+            'per_page'     => $perPage,
+            'current_page' => $page,
+            'last_page'    => $lastPage,
+            'from'         => $total > 0 ? ($page - 1) * $perPage + 1 : 0,
+            'to'           => min($page * $perPage, $total),
+        ];
+
+        $matchData = $matchData->forPage($page, $perPage)->values();
 
         // --- Teams for filter dropdown ---
         $teams = WorldMatch::finished()
@@ -135,10 +155,12 @@ class MatchResultsController extends Controller
             'stats'      => $stats,
             'teams'      => $teams,
             'topScorers' => $topScorers,
+            'pagination' => $pagination,
             'filters'    => [
-                'team'   => $teamFilter,
-                'stage'  => $stageFilter,
-                'result' => $resultFilter,
+                'team'     => $teamFilter,
+                'stage'    => $stageFilter,
+                'result'   => $resultFilter,
+                'per_page' => $perPage,
             ],
         ]);
     }

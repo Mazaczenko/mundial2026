@@ -29,7 +29,7 @@ interface MatchResult {
     score_away: number | null;
     result_type: 'FT' | 'AET' | 'PEN' | null;
     correct_bets: number;
-    total_participants: number;
+    total_bets: number;
     my_bet: MyBet | null;
     goals: Goal[];
 }
@@ -48,12 +48,22 @@ interface TopScorer {
     goals: number;
 }
 
+interface Pagination {
+    total: number;
+    per_page: number;
+    current_page: number;
+    last_page: number;
+    from: number;
+    to: number;
+}
+
 interface Props {
     matches: MatchResult[];
     stats: Stats;
     teams: string[];
     topScorers: TopScorer[];
-    filters: { team: string; stage: string; result: string };
+    pagination: Pagination;
+    filters: { team: string; stage: string; result: string; per_page: number };
 }
 
 const props = defineProps<Props>();
@@ -83,8 +93,8 @@ function resultTypeSuffix(type: string | null): string {
 }
 
 function accuracyPercent(match: MatchResult): number {
-    return match.total_participants > 0
-        ? Math.round((match.correct_bets / match.total_participants) * 100)
+    return match.total_bets > 0
+        ? Math.round((match.correct_bets / match.total_bets) * 100)
         : 0;
 }
 
@@ -125,25 +135,57 @@ function awayGoals(match: MatchResult) {
 const teamFilter   = ref(props.filters.team);
 const stageFilter  = ref(props.filters.stage);
 const resultFilter = ref(props.filters.result);
+const perPage      = ref(props.filters.per_page);
+
+const PER_PAGE_OPTIONS = [5, 10, 15, 20, 25, 50];
 
 const hasActiveFilters = computed(
     () => teamFilter.value !== '' || stageFilter.value !== '' || resultFilter.value !== '',
 );
 
+function buildParams(overrides: Record<string, unknown> = {}) {
+    return {
+        team:     teamFilter.value,
+        stage:    stageFilter.value,
+        result:   resultFilter.value,
+        per_page: perPage.value,
+        ...overrides,
+    };
+}
+
 function applyFilters() {
-    router.get(route('results.index'), {
-        team:   teamFilter.value,
-        stage:  stageFilter.value,
-        result: resultFilter.value,
-    }, { preserveScroll: true });
+    router.get(route('results.index'), buildParams({ page: 1 }), { preserveScroll: true });
 }
 
 function clearFilters() {
     teamFilter.value   = '';
     stageFilter.value  = '';
     resultFilter.value = '';
-    router.get(route('results.index'), {}, { preserveScroll: false });
+    router.get(route('results.index'), { per_page: perPage.value, page: 1 }, { preserveScroll: false });
 }
+
+function goToPage(p: number) {
+    router.get(route('results.index'), buildParams({ page: p }), { preserveScroll: true });
+}
+
+function changePerPage() {
+    router.get(route('results.index'), buildParams({ page: 1 }), { preserveScroll: true });
+}
+
+const visiblePages = computed(() => {
+    const { current_page, last_page } = props.pagination;
+    if (last_page <= 7) {
+        return Array.from({ length: last_page }, (_, i) => i + 1);
+    }
+    const pages: (number | '...')[] = [1];
+    if (current_page > 3) pages.push('...');
+    const start = Math.max(2, current_page - 1);
+    const end   = Math.min(last_page - 1, current_page + 1);
+    for (let i = start; i <= end; i++) pages.push(i);
+    if (current_page < last_page - 2) pages.push('...');
+    pages.push(last_page);
+    return pages;
+});
 
 const positionColor = (i: number) => {
     if (i === 0) return 'text-yellow-500';
@@ -332,7 +374,7 @@ const positionColor = (i: number) => {
                                                 </div>
                                             </div>
                                             <span class="w-10 text-right text-xs tabular-nums text-gray-500 dark:text-gray-400">
-                                                {{ match.correct_bets }}/{{ match.total_participants }}
+                                                {{ match.correct_bets }}/{{ match.total_bets }}
                                             </span>
                                         </div>
                                     </td>
@@ -445,7 +487,7 @@ const positionColor = (i: number) => {
                                         <div class="h-full rounded-full" :class="accuracyBarClass(accuracyPercent(match))" :style="{ width: accuracyPercent(match) + '%' }"></div>
                                     </div>
                                 </div>
-                                <span class="text-xs tabular-nums text-gray-500 dark:text-gray-400">{{ match.correct_bets }}/{{ match.total_participants }}</span>
+                                <span class="text-xs tabular-nums text-gray-500 dark:text-gray-400">{{ match.correct_bets }}/{{ match.total_bets }}</span>
                                 <button
                                     v-if="match.goals.length > 0"
                                     @click="toggleGoals(match.id)"
@@ -481,8 +523,59 @@ const positionColor = (i: number) => {
                 </div>
 
                 <!-- Empty state -->
-                <div v-if="matches.length === 0" class="rounded-lg bg-white p-10 text-center text-gray-500 shadow dark:bg-gray-800">
+                <div v-if="matches.length === 0 && pagination.total === 0" class="rounded-lg bg-white p-10 text-center text-gray-500 shadow dark:bg-gray-800">
                     <p class="text-sm">Brak meczów pasujących do wybranych filtrów.</p>
+                </div>
+
+                <!-- Pagination -->
+                <div v-if="pagination.total > 0" class="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <!-- Info + per-page -->
+                    <div class="flex items-center gap-3 text-sm text-gray-500 dark:text-gray-400">
+                        <span>
+                            {{ pagination.from }}–{{ pagination.to }} z {{ pagination.total }} meczów
+                        </span>
+                        <div class="flex items-center gap-1.5">
+                            <span class="text-xs">Pokaż:</span>
+                            <select
+                                v-model="perPage"
+                                @change="changePerPage"
+                                class="rounded border border-gray-300 bg-white px-2 py-1 text-xs text-gray-700 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200"
+                            >
+                                <option v-for="n in PER_PAGE_OPTIONS" :key="n" :value="n">{{ n }}</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Page numbers -->
+                    <div v-if="pagination.last_page > 1" class="flex items-center gap-1">
+                        <button
+                            @click="goToPage(pagination.current_page - 1)"
+                            :disabled="pagination.current_page === 1"
+                            class="rounded px-2 py-1 text-sm text-gray-500 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed dark:text-gray-400 dark:hover:bg-gray-700"
+                        >
+                            ‹
+                        </button>
+                        <template v-for="p in visiblePages" :key="p">
+                            <span v-if="p === '...'" class="px-1 text-sm text-gray-400">…</span>
+                            <button
+                                v-else
+                                @click="goToPage(p as number)"
+                                class="min-w-[2rem] rounded px-2 py-1 text-sm transition-colors"
+                                :class="p === pagination.current_page
+                                    ? 'bg-indigo-600 font-semibold text-white'
+                                    : 'text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700'"
+                            >
+                                {{ p }}
+                            </button>
+                        </template>
+                        <button
+                            @click="goToPage(pagination.current_page + 1)"
+                            :disabled="pagination.current_page === pagination.last_page"
+                            class="rounded px-2 py-1 text-sm text-gray-500 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed dark:text-gray-400 dark:hover:bg-gray-700"
+                        >
+                            ›
+                        </button>
+                    </div>
                 </div>
 
                 <!-- Top scorers -->

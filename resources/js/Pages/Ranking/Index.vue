@@ -283,11 +283,6 @@ function accuracyBarClass(pct: number | null): string {
     return 'bg-red-500';
 }
 
-const dangerZone = computed(() =>
-    props.ranking
-        .filter((p) => !p.eliminated && p.missed_count >= 1)
-        .sort((a, b) => b.missed_count - a.missed_count)
-);
 </script>
 
 <template>
@@ -296,34 +291,6 @@ const dangerZone = computed(() =>
 
         <div class="py-6">
             <div class="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
-
-                <!-- Strefa zagrożenia -->
-                <div v-if="dangerZone.length > 0" class="mb-6 overflow-hidden rounded-lg border border-orange-200 bg-orange-50 dark:border-orange-800/50 dark:bg-orange-950/30">
-                    <div class="flex items-center gap-2 border-b border-orange-200 px-4 py-2.5 dark:border-orange-800/50">
-                        <svg class="h-4 w-4 shrink-0 text-orange-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
-                        </svg>
-                        <span class="text-sm font-semibold text-orange-700 dark:text-orange-400">Strefa zagrożenia</span>
-                    </div>
-                    <div class="flex flex-wrap gap-2 px-4 py-3">
-                        <div
-                            v-for="p in dangerZone"
-                            :key="p.id"
-                            class="flex items-center gap-1.5 rounded-full px-3 py-1 text-sm font-medium"
-                            :class="p.missed_count >= 2
-                                ? 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300'
-                                : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-300'"
-                        >
-                            <span>{{ p.name }}</span>
-                            <span
-                                class="rounded-full px-1.5 py-0.5 text-xs font-bold"
-                                :class="p.missed_count >= 2
-                                    ? 'bg-red-200 text-red-800 dark:bg-red-800 dark:text-red-100'
-                                    : 'bg-yellow-200 text-yellow-800 dark:bg-yellow-800 dark:text-yellow-100'"
-                            >{{ p.missed_count }}/3</span>
-                        </div>
-                    </div>
-                </div>
 
                 <!-- Chart -->
                 <div v-if="hasChartData" class="mb-6 overflow-hidden rounded-lg bg-white shadow dark:bg-gray-800">

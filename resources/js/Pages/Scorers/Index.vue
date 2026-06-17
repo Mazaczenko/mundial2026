@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
-import { Head } from '@inertiajs/vue3';
-import { computed } from 'vue';
+import { Head, router } from '@inertiajs/vue3';
+import { computed, ref } from 'vue';
 import { Bar } from 'vue-chartjs';
 import {
     Chart as ChartJS,
@@ -57,19 +57,56 @@ interface Stats {
     late_drama: number;
 }
 
+interface Pagination {
+    total: number;
+    per_page: number;
+    current_page: number;
+    last_page: number;
+    from: number;
+    to: number;
+}
+
 interface Props {
     topScorers: Scorer[];
+    podiumScorers: Scorer[];
     goalsByCountry: CountryGoals[];
     goalsByMinute: MinuteBucket[];
     stats: Stats;
+    pagination: Pagination;
 }
 
 const props = defineProps<Props>();
 
-const leader = computed(() => props.topScorers[0] ?? null);
+const PER_PAGE_OPTIONS = [5, 10, 15, 20, 25, 50];
+const perPage = ref(props.pagination.per_page);
+
+function goToPage(p: number) {
+    router.get(route('scorers.index'), { page: p, per_page: perPage.value }, { preserveScroll: true });
+}
+
+function changePerPage() {
+    router.get(route('scorers.index'), { page: 1, per_page: perPage.value }, { preserveScroll: true });
+}
+
+const visiblePages = computed(() => {
+    const { current_page, last_page } = props.pagination;
+    if (last_page <= 7) {
+        return Array.from({ length: last_page }, (_, i) => i + 1);
+    }
+    const pages: (number | '...')[] = [1];
+    if (current_page > 3) pages.push('...');
+    const start = Math.max(2, current_page - 1);
+    const end   = Math.min(last_page - 1, current_page + 1);
+    for (let i = start; i <= end; i++) pages.push(i);
+    if (current_page < last_page - 2) pages.push('...');
+    pages.push(last_page);
+    return pages;
+});
+
+const leader = computed(() => props.podiumScorers[0] ?? null);
 
 const podium = computed(() => {
-    const top = props.topScorers.slice(0, 3);
+    const top = props.podiumScorers.slice(0, 3);
     if (top.length < 2) return top;
     // reorder: [2nd, 1st, 3rd] for visual podium effect
     if (top.length === 3) return [top[1], top[0], top[2]];
@@ -255,7 +292,7 @@ const countryChartHeight = computed(() =>
                     </div>
 
                     <!-- Full scorers table -->
-                    <div v-if="topScorers.length > 0" class="mb-6 overflow-hidden rounded-lg bg-white shadow dark:bg-gray-800">
+                    <div v-if="pagination.total > 0" class="mb-6 overflow-hidden rounded-lg bg-white shadow dark:bg-gray-800">
                         <div class="bg-indigo-600 px-4 py-2.5">
                             <h2 class="font-bold tracking-wide text-white">Pełna tabela strzelców</h2>
                         </div>
@@ -292,6 +329,47 @@ const countryChartHeight = computed(() =>
                                     </tr>
                                 </tbody>
                             </table>
+                        </div>
+
+                        <!-- Pagination -->
+                        <div class="flex flex-col gap-3 border-t border-gray-100 px-4 py-3 dark:border-gray-700 sm:flex-row sm:items-center sm:justify-between">
+                            <div class="flex items-center gap-3 text-sm text-gray-500 dark:text-gray-400">
+                                <span>{{ pagination.from }}–{{ pagination.to }} z {{ pagination.total }} strzelców</span>
+                                <div class="flex items-center gap-1.5">
+                                    <span class="text-xs">Pokaż:</span>
+                                    <select
+                                        v-model="perPage"
+                                        @change="changePerPage"
+                                        class="rounded border border-gray-300 bg-white px-2 py-1 text-xs text-gray-700 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200"
+                                    >
+                                        <option v-for="n in PER_PAGE_OPTIONS" :key="n" :value="n">{{ n }}</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div v-if="pagination.last_page > 1" class="flex items-center gap-1">
+                                <button
+                                    @click="goToPage(pagination.current_page - 1)"
+                                    :disabled="pagination.current_page === 1"
+                                    class="rounded px-2 py-1 text-sm text-gray-500 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-30 dark:text-gray-400 dark:hover:bg-gray-700"
+                                >‹</button>
+                                <template v-for="p in visiblePages" :key="p">
+                                    <span v-if="p === '...'" class="px-1 text-sm text-gray-400">…</span>
+                                    <button
+                                        v-else
+                                        @click="goToPage(p as number)"
+                                        class="min-w-[2rem] rounded px-2 py-1 text-sm transition-colors"
+                                        :class="p === pagination.current_page
+                                            ? 'bg-indigo-600 font-semibold text-white'
+                                            : 'text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700'"
+                                    >{{ p }}</button>
+                                </template>
+                                <button
+                                    @click="goToPage(pagination.current_page + 1)"
+                                    :disabled="pagination.current_page === pagination.last_page"
+                                    class="rounded px-2 py-1 text-sm text-gray-500 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-30 dark:text-gray-400 dark:hover:bg-gray-700"
+                                >›</button>
+                            </div>
                         </div>
                     </div>
 

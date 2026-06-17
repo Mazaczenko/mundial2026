@@ -4,25 +4,49 @@ namespace App\Http\Controllers;
 
 use App\Models\MatchGoal;
 use App\Models\WorldMatch;
+use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class ScorersController extends Controller
 {
-    public function index(): Response
+    private const ALLOWED_PER_PAGE = [5, 10, 15, 20, 25, 50];
+
+    public function index(Request $request): Response
     {
         $goals = MatchGoal::with('worldMatch')
             ->whereHas('worldMatch', fn ($q) => $q->finished())
             ->get();
 
         $finishedMatches = WorldMatch::finished()->count();
+        $allScorers      = $this->buildTopScorers($goals);
+
+        $perPage = in_array((int) $request->input('per_page', 20), self::ALLOWED_PER_PAGE)
+            ? (int) $request->input('per_page', 20)
+            : 20;
+        $page = max(1, (int) $request->input('page', 1));
+
+        $total    = count($allScorers);
+        $lastPage = max(1, (int) ceil($total / $perPage));
+        $page     = min($page, $lastPage);
+
+        $pagination = [
+            'total'        => $total,
+            'per_page'     => $perPage,
+            'current_page' => $page,
+            'last_page'    => $lastPage,
+            'from'         => $total > 0 ? ($page - 1) * $perPage + 1 : 0,
+            'to'           => min($page * $perPage, $total),
+        ];
 
         return Inertia::render('Scorers/Index', [
-            'topScorers' => $this->buildTopScorers($goals),
+            'topScorers'     => array_slice($allScorers, ($page - 1) * $perPage, $perPage),
+            'podiumScorers'  => array_slice($allScorers, 0, 3),
             'goalsByCountry' => $this->buildGoalsByCountry($goals),
-            'goalsByMinute' => $this->buildGoalsByMinute($goals),
-            'stats' => $this->buildStats($goals, $finishedMatches),
+            'goalsByMinute'  => $this->buildGoalsByMinute($goals),
+            'stats'          => $this->buildStats($goals, $finishedMatches),
+            'pagination'     => $pagination,
         ]);
     }
 

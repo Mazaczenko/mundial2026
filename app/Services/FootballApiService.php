@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -63,9 +64,17 @@ class FootballApiService
 
     private function request(string $endpoint, array $params = []): array
     {
-        $response = Http::withHeaders([
-            'X-Auth-Token' => config('services.footballdata.key'),
-        ])->get(self::BASE_URL . $endpoint, $params);
+        try {
+            $response = Http::withHeaders([
+                'X-Auth-Token' => config('services.footballdata.key'),
+            ])->get(self::BASE_URL . $endpoint, $params);
+        } catch (ConnectionException $e) {
+            Log::error("football-data.org connection error: {$e->getMessage()}", [
+                'endpoint' => $endpoint,
+                'params'   => $params,
+            ]);
+            return [];
+        }
 
         if ($response->failed()) {
             $message = $response->json('message') ?? $response->body();

@@ -3,10 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\Participant;
-use App\Models\RankingSnapshot;
 use App\Models\WorldMatch;
 use App\Services\RankingService;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -156,40 +154,58 @@ class RankingController extends Controller
 
     private function buildChartData(): array
     {
-        $snapshots = RankingSnapshot::with('participant:id,name,eliminated')
-            ->orderBy('world_match_id')
-            ->get();
+        $matches = WorldMatch::finished()
+            ->orderBy('kickoff_at')
+            ->get(['id', 'home_team', 'away_team', 'score_home', 'score_away']);
 
-        if ($snapshots->isEmpty()) {
+        if ($matches->isEmpty()) {
             return [];
         }
 
-        // X-axis labels: "Mecz 1", "Mecz 2", ...
-        $matchIds = $snapshots->pluck('world_match_id')->unique()->sort()->values();
+        $matchIds = $matches->pluck('id')->all();
 
-        $labels = WorldMatch::whereIn('id', $matchIds)
-            ->orderBy('kickoff_at')
-            ->get(['id', 'home_team', 'away_team'])
-            ->mapWithKeys(fn ($m) => [
-                $m->id => $m->home_team.' – '.$m->away_team,
-            ]);
+        // Index match scores for exact-score bonus calculation
+        $matchScores = $matches->keyBy('id');
 
-        $byParticipant = $snapshots->groupBy('participant_id');
+        $participants = Participant::with([
+            'bets' => fn ($q) => $q->whereIn('match_id', $matchIds),
+        ])->orderBy('name')->get(['id', 'name', 'eliminated']);
 
-        $datasets = $byParticipant->map(function ($rows) use ($matchIds) {
-            $participant = $rows->first()->participant;
-            $pointsMap = $rows->pluck('points', 'world_match_id');
+        $labels = $matches->map(fn ($m) => $m->home_team.' – '.$m->away_team)->values();
 
-            $data = $matchIds->map(fn ($mid) => $pointsMap[$mid] ?? null)->values();
+        $datasets = $participants->map(function (Participant $participant) use ($matchIds, $matchScores) {
+            $betsByMatch = $participant->bets->keyBy('match_id');
+
+            $cumulative = 0;
+            $data = array_map(function (int $mid) use ($betsByMatch, $matchScores, &$cumulative) {
+                $bet   = $betsByMatch->get($mid);
+                $match = $matchScores->get($mid);
+
+                if ($bet && $bet->is_correct) {
+                    $cumulative++;
+                    // Exact score bonus (+1) for knockout matches with predicted score
+                    if (
+                        $bet->predicted_home !== null &&
+                        $bet->predicted_away !== null &&
+                        $match &&
+                        (int) $bet->predicted_home === (int) $match->score_home &&
+                        (int) $bet->predicted_away === (int) $match->score_away
+                    ) {
+                        $cumulative++;
+                    }
+                }
+
+                return $cumulative;
+            }, $matchIds);
 
             return [
                 'label' => $participant->name,
-                'data' => $data,
+                'data'  => array_values($data),
             ];
         })->values();
 
         return [
-            'labels' => $matchIds->map(fn ($mid) => $labels[$mid] ?? "Mecz {$mid}")->values(),
+            'labels'   => $labels,
             'datasets' => $datasets,
         ];
     }

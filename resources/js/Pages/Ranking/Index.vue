@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
-import { Head } from '@inertiajs/vue3';
+import { Head, usePage } from '@inertiajs/vue3';
 import { ref, computed, defineComponent, h } from 'vue';
 
 const SortIcon = defineComponent({
@@ -112,6 +112,8 @@ const chartOptions = {
     },
 };
 
+const currentUserName = (usePage().props as any).auth?.user?.name as string | undefined;
+
 const chartDataset = computed(() => {
     if (!hasChartData.value) return { labels: [], datasets: [] };
     const d = props.chartData as { labels: string[]; datasets: ChartDataset[] };
@@ -122,11 +124,12 @@ const chartDataset = computed(() => {
             data: ds.data,
             borderColor: COLORS[i % COLORS.length],
             backgroundColor: COLORS[i % COLORS.length] + '22',
-            borderWidth: 2,
-            pointRadius: 4,
+            borderWidth: currentUserName && ds.label === currentUserName ? 3 : 2,
+            pointRadius: currentUserName && ds.label === currentUserName ? 5 : 4,
             pointHoverRadius: 6,
             tension: 0.3,
             spanGaps: true,
+            hidden: currentUserName ? ds.label !== currentUserName : false,
         })),
     };
 });

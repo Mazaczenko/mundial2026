@@ -5,6 +5,7 @@ namespace App\Jobs;
 use App\Models\Participant;
 use App\Models\WorldMatch;
 use App\Notifications\MatchReminderNotification;
+use App\Services\NotificationService;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Carbon;
@@ -13,7 +14,7 @@ class SendMatchRemindersJob implements ShouldQueue
 {
     use Queueable;
 
-    public function handle(): void
+    public function handle(NotificationService $notificationService): void
     {
         $matches = WorldMatch::query()
             ->where('status', 'scheduled')
@@ -35,6 +36,15 @@ class SendMatchRemindersJob implements ShouldQueue
             foreach ($participants as $participant) {
                 $participant->notify(new MatchReminderNotification($match, $participant));
             }
+
+            $notificationService->notify(
+                $participants->pluck('id')->all(),
+                'reminder',
+                '⏰ Mecz za godzinę!',
+                "{$match->home_team} – {$match->away_team}",
+                '/bets',
+                ['match_id' => $match->id],
+            );
 
             $match->update(['reminder_sent' => true]);
         }

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, onUnmounted } from 'vue';
 import Dropdown from '@/Components/Dropdown.vue';
 import DropdownLink from '@/Components/DropdownLink.vue';
 import NavLink from '@/Components/NavLink.vue';
@@ -63,8 +63,110 @@ async function togglePush() {
     }
 }
 
-onMounted(() => { checkPushStatus(); });
+// ── In-app Notifications ──────────────────────────────────────────────────
+interface NotificationItem {
+    id: number;
+    type: 'reminder' | 'goal' | 'result';
+    title: string;
+    body: string;
+    url: string;
+    read_at: string | null;
+    created_at: string;
+}
 
+const notifOpen = ref(false);
+const notifications = ref<NotificationItem[]>([]);
+const unreadCount = ref(0);
+const notifPanelRef = ref<HTMLElement | null>(null);
+
+function csrfToken(): string {
+    return (document.querySelector('meta[name=csrf-token]') as HTMLMetaElement)?.content ?? '';
+}
+
+async function fetchNotifications() {
+    try {
+        const res = await fetch('/notifications', {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' },
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        notifications.value = data.notifications;
+        unreadCount.value = data.unread_count;
+    } catch {
+        // silently ignore network errors
+    }
+}
+
+function typeIcon(type: NotificationItem['type']): string {
+    if (type === 'reminder') return '⏰';
+    if (type === 'goal') return '⚽';
+    return '📋';
+}
+
+function relativeTime(dateStr: string): string {
+    const diffSeconds = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000);
+    if (diffSeconds < 60) return 'przed chwilą';
+    const diffMinutes = Math.floor(diffSeconds / 60);
+    if (diffMinutes < 60) return `${diffMinutes} min temu`;
+    const diffHours = Math.floor(diffMinutes / 60);
+    if (diffHours < 24) return `${diffHours} godz. temu`;
+    return `${Math.floor(diffHours / 24)} dni temu`;
+}
+
+async function markRead(notif: NotificationItem) {
+    if (notif.read_at) return;
+    try {
+        await fetch(`/notifications/${notif.id}/read`, {
+            method: 'POST',
+            headers: { 'X-CSRF-TOKEN': csrfToken(), 'X-Requested-With': 'XMLHttpRequest' },
+        });
+        notif.read_at = new Date().toISOString();
+        unreadCount.value = Math.max(0, unreadCount.value - 1);
+    } catch {
+        // ignore
+    }
+}
+
+async function markAllRead() {
+    try {
+        await fetch('/notifications/read-all', {
+            method: 'POST',
+            headers: { 'X-CSRF-TOKEN': csrfToken(), 'X-Requested-With': 'XMLHttpRequest' },
+        });
+        notifications.value.forEach(n => { n.read_at = n.read_at ?? new Date().toISOString(); });
+        unreadCount.value = 0;
+    } catch {
+        // ignore
+    }
+}
+
+async function handleNotifClick(notif: NotificationItem) {
+    await markRead(notif);
+    notifOpen.value = false;
+    router.visit(notif.url);
+}
+
+function handleOutsideClick(e: MouseEvent) {
+    if (notifPanelRef.value && !notifPanelRef.value.contains(e.target as Node)) {
+        notifOpen.value = false;
+    }
+}
+
+let notifInterval: ReturnType<typeof setInterval> | null = null;
+
+onMounted(() => {
+    checkPushStatus();
+    fetchNotifications();
+    notifInterval = setInterval(fetchNotifications, 60_000);
+    document.addEventListener('click', handleOutsideClick);
+});
+
+onUnmounted(() => {
+    if (notifInterval) clearInterval(notifInterval);
+    document.removeEventListener('click', handleOutsideClick);
+});
+
+// ── Dark mode ─────────────────────────────────────────────────────────────
 const isDark = ref(document.documentElement.classList.contains('dark'));
 
 function toggleDark() {
@@ -149,6 +251,63 @@ function toggleDark() {
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 0 0 5.454-1.31A8.967 8.967 0 0 1 18 9.75V9A6 6 0 0 0 6 9v.75a8.967 8.967 0 0 1-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 0 1-5.714 0m5.714 0a3 3 0 1 1-5.714 0" />
                                 </svg>
                             </button>
+
+                            <!-- In-app notification bell -->
+                            <div class="relative" ref="notifPanelRef">
+                                <button
+                                    @click.stop="notifOpen = !notifOpen"
+                                    type="button"
+                                    title="Powiadomienia"
+                                    class="relative rounded-md p-2 text-gray-400 transition-colors duration-150 hover:bg-gray-100 hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:hover:bg-gray-700 dark:hover:text-gray-200"
+                                >
+                                    <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M9.143 17.082a24.248 24.248 0 0 0 3.844.148m-3.844-.148a23.856 23.856 0 0 1-5.455-1.31 8.964 8.964 0 0 0 2.3-5.542m3.155 6.852a3 3 0 0 0 5.667 0M7.843 9.619a4.5 4.5 0 0 1 8.313 0" />
+                                    </svg>
+                                    <span
+                                        v-if="unreadCount > 0"
+                                        class="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white"
+                                    >{{ unreadCount > 9 ? '9+' : unreadCount }}</span>
+                                </button>
+
+                                <!-- Dropdown panel -->
+                                <div
+                                    v-if="notifOpen"
+                                    class="absolute right-0 top-full z-50 mt-1 w-80 rounded-lg border border-gray-200 bg-white shadow-lg dark:border-gray-700 dark:bg-gray-800"
+                                >
+                                    <div class="flex items-center justify-between border-b border-gray-100 px-4 py-2 dark:border-gray-700">
+                                        <span class="text-sm font-semibold text-gray-700 dark:text-gray-200">Powiadomienia</span>
+                                        <button
+                                            v-if="unreadCount > 0"
+                                            @click="markAllRead"
+                                            class="text-xs text-indigo-600 hover:underline dark:text-indigo-400"
+                                        >
+                                            Oznacz wszystkie jako przeczytane
+                                        </button>
+                                    </div>
+
+                                    <ul class="max-h-96 divide-y divide-gray-100 overflow-y-auto dark:divide-gray-700">
+                                        <li v-if="notifications.length === 0" class="px-4 py-6 text-center text-sm text-gray-500 dark:text-gray-400">
+                                            Brak powiadomień
+                                        </li>
+                                        <li
+                                            v-for="notif in notifications"
+                                            :key="notif.id"
+                                            @click="handleNotifClick(notif)"
+                                            class="flex cursor-pointer items-start gap-3 px-4 py-3 transition-colors hover:bg-gray-50 dark:hover:bg-gray-700/50"
+                                            :class="{ 'bg-indigo-50/50 dark:bg-indigo-900/10': !notif.read_at }"
+                                        >
+                                            <span class="mt-0.5 shrink-0 text-base leading-none">{{ typeIcon(notif.type) }}</span>
+                                            <div class="min-w-0 flex-1">
+                                                <p class="truncate text-sm font-medium text-gray-800 dark:text-gray-100">{{ notif.title }}</p>
+                                                <p class="truncate text-xs text-gray-500 dark:text-gray-400">{{ notif.body }}</p>
+                                                <p class="mt-0.5 text-xs text-gray-400 dark:text-gray-500">{{ relativeTime(notif.created_at) }}</p>
+                                            </div>
+                                            <span v-if="!notif.read_at" class="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-indigo-500"></span>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+
                             <!-- Dark mode toggle -->
                             <button
                                 @click="toggleDark"

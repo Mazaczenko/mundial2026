@@ -2,11 +2,13 @@
 
 namespace App\Jobs;
 
+use App\Models\Participant;
 use App\Models\WorldMatch;
 use App\Services\BetService;
 use App\Services\EliminationService;
 use App\Services\EspnApiService;
 use App\Services\FootballApiService;
+use App\Services\NotificationService;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Carbon;
@@ -20,6 +22,7 @@ class FetchFinishedMatchResultsJob implements ShouldQueue
         EspnApiService $espnApi,
         BetService $betService,
         EliminationService $eliminationService,
+        NotificationService $notificationService,
     ): void {
         $pendingMatches = WorldMatch::query()->pendingResults()->get();
 
@@ -60,6 +63,8 @@ class FetchFinishedMatchResultsJob implements ShouldQueue
 
             $match->refresh()->load('bets');
             $betService->resolveBets($match);
+
+            $this->sendResultNotifications($notificationService, $match);
         }
 
         $eliminationService->checkAll();
@@ -83,5 +88,53 @@ class FetchFinishedMatchResultsJob implements ShouldQueue
     private function syncLineup(EspnApiService $espnApi, WorldMatch $match): void
     {
         $espnApi->syncLineupForMatch($match);
+    }
+
+    private function sendResultNotifications(NotificationService $notifService, WorldMatch $match): void
+    {
+        $match->refresh()->load('bets.participant');
+
+        $home = $match->score_home ?? 0;
+        $away = $match->score_away ?? 0;
+        $scoreStr = "{$home}:{$away}";
+
+        foreach ($match->bets as $bet) {
+            if ($bet->participant === null || $bet->participant->eliminated) {
+                continue;
+            }
+
+            $correct = (bool) $bet->is_correct;
+            $icon = $correct ? '✅' : '❌';
+            $title = "{$match->home_team} {$scoreStr} {$match->away_team}";
+            $body = "{$icon} Twój typ: {$bet->prediction_1x2}".($correct ? ' (+1 pkt)' : '');
+
+            $notifService->notify(
+                [$bet->participant_id],
+                'result',
+                $title,
+                $body,
+                '/results',
+                ['match_id' => $match->id, 'correct' => $correct],
+            );
+        }
+
+        $bettedIds = $match->bets->pluck('participant_id')->all();
+        $missed = Participant::where('eliminated', false)
+            ->whereNotIn('id', $bettedIds)
+            ->pluck('id')
+            ->all();
+
+        if (! empty($missed)) {
+            $title = "{$match->home_team} {$scoreStr} {$match->away_team}";
+            $notifService->notify(
+                $missed,
+                'result',
+                $title,
+                '❕ Nie obstawiłeś tego meczu',
+                '/results',
+                ['match_id' => $match->id],
+                push: true,
+            );
+        }
     }
 }

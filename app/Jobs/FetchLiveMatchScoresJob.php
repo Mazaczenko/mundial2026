@@ -6,6 +6,7 @@ use App\Models\WorldMatch;
 use App\Services\BetService;
 use App\Services\EliminationService;
 use App\Services\EspnApiService;
+use App\Services\NotificationService;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Carbon;
@@ -15,8 +16,12 @@ class FetchLiveMatchScoresJob implements ShouldQueue
 {
     use Queueable;
 
-    public function handle(EspnApiService $espnApi, BetService $betService, EliminationService $eliminationService): void
-    {
+    public function handle(
+        EspnApiService $espnApi,
+        BetService $betService,
+        EliminationService $eliminationService,
+        NotificationService $notificationService,
+    ): void {
         $liveWindow = WorldMatch::where('status', '!=', 'finished')
             ->where('kickoff_at', '<=', Carbon::now()->addMinutes(5))
             ->where('kickoff_at', '>=', Carbon::now()->subMinutes(120))
@@ -65,22 +70,48 @@ class FetchLiveMatchScoresJob implements ShouldQueue
             $scoreHome = $home !== null ? (int) ($home['score'] ?? 0) : $match->score_home;
             $scoreAway = $away !== null ? (int) ($away['score'] ?? 0) : $match->score_away;
 
+            // Capture old scores before the update to detect goals
+            $oldHome = $match->score_home ?? 0;
+            $oldAway = $match->score_away ?? 0;
+            $wasNotFinished = $match->status !== 'finished';
+
             $match->update([
-                'status'     => $newStatus,
+                'status' => $newStatus,
                 'score_home' => $scoreHome,
                 'score_away' => $scoreAway,
             ]);
 
-            if ($newStatus === 'finished' && $match->status !== 'finished') {
+            if ($newStatus === 'finished' && $wasNotFinished) {
                 (new FetchFinishedMatchResultsJob)->syncGoals($espnApi, $match);
                 $match->refresh()->load('bets');
                 $betService->resolveBets($match);
+            } else {
+                $goals = ($scoreHome - $oldHome) + ($scoreAway - $oldAway);
+                if ($goals > 0) {
+                    $this->sendGoalNotification($notificationService, $match, $scoreHome, $scoreAway);
+                }
             }
         }
 
         if ($liveWindow->where('status', '!=', 'finished')->isNotEmpty()) {
             $eliminationService->checkAll();
         }
+    }
+
+    private function sendGoalNotification(
+        NotificationService $notifService,
+        WorldMatch $match,
+        int $home,
+        int $away,
+    ): void {
+        $title = "⚽ {$match->home_team} {$home}:{$away} {$match->away_team}";
+        $notifService->notifyAll(
+            'goal',
+            $title,
+            'Bramka!',
+            '/bets',
+            ['match_id' => $match->id],
+        );
     }
 
     private function resolveEventId(EspnApiService $espnApi, WorldMatch $match, string $date): ?string

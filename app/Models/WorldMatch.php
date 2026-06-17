@@ -24,6 +24,8 @@ class WorldMatch extends Model
         'score_home',
         'score_away',
         'result_type',
+        'match_stats',
+        'match_lineup',
         'reminder_sent',
     ];
 
@@ -31,6 +33,8 @@ class WorldMatch extends Model
     protected $casts = [
         'kickoff_at' => 'datetime',
         'reminder_sent' => 'boolean',
+        'match_stats' => 'array',
+        'match_lineup' => 'array',
     ];
 
     public function bets(): HasMany
@@ -41,6 +45,11 @@ class WorldMatch extends Model
     public function goals(): HasMany
     {
         return $this->hasMany(MatchGoal::class);
+    }
+
+    public function cards(): HasMany
+    {
+        return $this->hasMany(MatchCard::class);
     }
 
     public function result1x2(): ?string

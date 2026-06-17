@@ -18,8 +18,8 @@ class MatchResultsController extends Controller
         /** @var Participant $participant */
         $participant = Auth::user();
 
-        $teamFilter   = $request->input('team', '');
-        $stageFilter  = $request->input('stage', '');
+        $teamFilter = $request->input('team', '');
+        $stageFilter = $request->input('stage', '');
         $resultFilter = $request->input('result', '');
 
         $allowedPerPage = [5, 10, 15, 20, 25, 50];
@@ -36,21 +36,22 @@ class MatchResultsController extends Controller
             ->get();
 
         $myCorrect = $myBetsOnFinished->where('is_correct', true)->count();
-        $myTotal   = $myBetsOnFinished->count();
+        $myTotal = $myBetsOnFinished->count();
 
         $stats = [
             'total_matches' => $allFinishedIds->count(),
-            'my_correct'    => $myCorrect,
-            'my_total'      => $myTotal,
-            'my_missed'     => $allFinishedIds->count() - $myTotal,
-            'my_accuracy'   => $myTotal > 0 ? round($myCorrect / $myTotal * 100) : null,
-            'streak'        => $this->computeStreak($participant->id, $allFinishedIds->toArray()),
+            'my_correct' => $myCorrect,
+            'my_total' => $myTotal,
+            'my_missed' => $allFinishedIds->count() - $myTotal,
+            'my_accuracy' => $myTotal > 0 ? round($myCorrect / $myTotal * 100) : null,
+            'streak' => $this->computeStreak($participant->id, $allFinishedIds->toArray()),
         ];
 
         // --- Filtered matches ---
         $query = WorldMatch::with([
             'goals' => fn ($q) => $q->orderByRaw('CAST(minute AS UNSIGNED)'),
-            'bets',
+            'cards' => fn ($q) => $q->orderByRaw('CAST(minute AS UNSIGNED)'),
+            'bets' => fn ($q) => $q->with('participant:id,name,eliminated'),
         ])
             ->finished()
             ->orderBy('kickoff_at', 'desc');
@@ -87,44 +88,60 @@ class MatchResultsController extends Controller
             $myBet = $myBets[$match->id] ?? null;
 
             return [
-                'id'                 => $match->id,
-                'home_team'          => $match->home_team,
-                'away_team'          => $match->away_team,
-                'home_team_flag'     => $match->home_team_flag,
-                'away_team_flag'     => $match->away_team_flag,
-                'kickoff_at'         => $match->kickoff_at,
-                'stage'              => $match->stage,
-                'group_name'         => $match->group_name,
-                'score_home'         => $match->score_home,
-                'score_away'         => $match->score_away,
-                'result_type'        => $match->result_type,
+                'id' => $match->id,
+                'home_team' => $match->home_team,
+                'away_team' => $match->away_team,
+                'home_team_flag' => $match->home_team_flag,
+                'away_team_flag' => $match->away_team_flag,
+                'kickoff_at' => $match->kickoff_at,
+                'stage' => $match->stage,
+                'group_name' => $match->group_name,
+                'score_home' => $match->score_home,
+                'score_away' => $match->score_away,
+                'result_type' => $match->result_type,
                 'correct_bets' => $match->bets->where('is_correct', true)->count(),
-                'total_bets'   => $match->bets->count(),
-                'my_bet'             => $myBet ? [
+                'total_bets' => $match->bets->count(),
+                'my_bet' => $myBet ? [
                     'prediction_1x2' => $myBet->prediction_1x2,
-                    'is_correct'     => $myBet->is_correct,
+                    'is_correct' => $myBet->is_correct,
                 ] : null,
                 'goals' => $match->goals->map(fn ($g) => [
                     'player_name' => $g->player_name,
-                    'team_side'   => $g->team_side,
-                    'minute'      => $g->minute,
-                    'own_goal'    => $g->own_goal,
+                    'team_side' => $g->team_side,
+                    'minute' => $g->minute,
+                    'own_goal' => $g->own_goal,
                 ])->values(),
+                'cards' => $match->cards->map(fn ($c) => [
+                    'player_name' => $c->player_name,
+                    'team_side' => $c->team_side,
+                    'minute' => $c->minute,
+                    'card_type' => $c->card_type,
+                ])->values(),
+                'match_stats' => $match->match_stats,
+                'match_lineup' => $match->match_lineup,
+                'all_bets' => $match->bets->map(fn ($b) => [
+                    'participant_name' => $b->participant->name ?? '?',
+                    'eliminated' => (bool) ($b->participant->eliminated ?? false),
+                    'prediction_1x2' => $b->prediction_1x2,
+                    'predicted_home' => $b->predicted_home,
+                    'predicted_away' => $b->predicted_away,
+                    'is_correct' => $b->is_correct,
+                ])->sortBy('participant_name')->values(),
             ];
         })->values();
 
         // --- Paginate ---
-        $total    = $matchData->count();
+        $total = $matchData->count();
         $lastPage = max(1, (int) ceil($total / $perPage));
-        $page     = min($page, $lastPage);
+        $page = min($page, $lastPage);
 
         $pagination = [
-            'total'        => $total,
-            'per_page'     => $perPage,
+            'total' => $total,
+            'per_page' => $perPage,
             'current_page' => $page,
-            'last_page'    => $lastPage,
-            'from'         => $total > 0 ? ($page - 1) * $perPage + 1 : 0,
-            'to'           => min($page * $perPage, $total),
+            'last_page' => $lastPage,
+            'from' => $total > 0 ? ($page - 1) * $perPage + 1 : 0,
+            'to' => min($page * $perPage, $total),
         ];
 
         $matchData = $matchData->forPage($page, $perPage)->values();
@@ -151,15 +168,15 @@ class MatchResultsController extends Controller
             ->map(fn ($r) => ['name' => $r->player_name, 'goals' => (int) $r->goals]);
 
         return Inertia::render('Results/Index', [
-            'matches'    => $matchData,
-            'stats'      => $stats,
-            'teams'      => $teams,
+            'matches' => $matchData,
+            'stats' => $stats,
+            'teams' => $teams,
             'topScorers' => $topScorers,
             'pagination' => $pagination,
-            'filters'    => [
-                'team'     => $teamFilter,
-                'stage'    => $stageFilter,
-                'result'   => $resultFilter,
+            'filters' => [
+                'team' => $teamFilter,
+                'stage' => $stageFilter,
+                'result' => $resultFilter,
                 'per_page' => $perPage,
             ],
         ]);

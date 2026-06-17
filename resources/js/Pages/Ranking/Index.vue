@@ -42,6 +42,25 @@ interface ChartDataset {
     data: (number | null)[];
 }
 
+interface BettingStatEntry {
+    id: number;
+    name: string;
+    eliminated: boolean;
+    total_finished: number;
+    bets_placed: number;
+    correct_1x2: number;
+    missed: number;
+    accuracy_pct: number | null;
+    exact_scores: number;
+    current_streak: number;
+    best_streak: number;
+    group_bets: number;
+    group_correct: number;
+    knockout_bets: number;
+    knockout_correct: number;
+    fav_prediction: '1' | 'X' | '2' | null;
+}
+
 interface Props {
     ranking: RankingEntry[];
     chartData: {
@@ -49,6 +68,7 @@ interface Props {
         datasets: ChartDataset[];
     } | [];
     playedMatchesCount: number;
+    bettingStats: BettingStatEntry[];
 }
 
 const props = defineProps<Props>();
@@ -115,12 +135,16 @@ const showChart = ref(true);
 
 type SortCol = 'rank' | 'name' | 'points' | 'bets_count' | 'missed_count';
 type SortDir = 'asc' | 'desc';
+type StatSortCol = 'name' | 'bets_placed' | 'accuracy_pct' | 'exact_scores' | 'current_streak' | 'best_streak' | 'group' | 'knockout';
 
 const PER_PAGE = 25;
 const search = ref('');
 const sortCol = ref<SortCol>('rank');
 const sortDir = ref<SortDir>('asc');
 const page = ref(1);
+
+const statSortCol = ref<StatSortCol>('accuracy_pct');
+const statSortDir = ref<SortDir>('desc');
 
 const active = computed(() => props.ranking.filter((p) => !p.eliminated));
 const eliminated = computed(() => props.ranking.filter((p) => p.eliminated));
@@ -189,6 +213,81 @@ function toggleSort(col: SortCol) {
     }
     page.value = 1;
 }
+
+const statDefaultDir: Record<StatSortCol, SortDir> = {
+    name: 'asc',
+    bets_placed: 'desc',
+    accuracy_pct: 'desc',
+    exact_scores: 'desc',
+    current_streak: 'desc',
+    best_streak: 'desc',
+    group: 'desc',
+    knockout: 'desc',
+};
+
+function toggleStatSort(col: StatSortCol) {
+    if (statSortCol.value === col) {
+        statSortDir.value = statSortDir.value === 'asc' ? 'desc' : 'asc';
+    } else {
+        statSortCol.value = col;
+        statSortDir.value = statDefaultDir[col];
+    }
+}
+
+function compareStatRow(a: BettingStatEntry, b: BettingStatEntry, col: StatSortCol): number {
+    switch (col) {
+        case 'name':        return a.name.localeCompare(b.name, 'pl');
+        case 'bets_placed': return a.bets_placed - b.bets_placed;
+        case 'accuracy_pct':
+            return (a.accuracy_pct ?? -1) - (b.accuracy_pct ?? -1);
+        case 'exact_scores':    return a.exact_scores - b.exact_scores;
+        case 'current_streak':  return a.current_streak - b.current_streak;
+        case 'best_streak':     return a.best_streak - b.best_streak;
+        case 'group':
+            return (a.group_bets > 0 ? a.group_correct / a.group_bets : -1) -
+                   (b.group_bets > 0 ? b.group_correct / b.group_bets : -1);
+        case 'knockout':
+            return (a.knockout_bets > 0 ? a.knockout_correct / a.knockout_bets : -1) -
+                   (b.knockout_bets > 0 ? b.knockout_correct / b.knockout_bets : -1);
+        default: return 0;
+    }
+}
+
+const sortedActiveStats = computed(() => {
+    const active = props.bettingStats.filter((p) => !p.eliminated);
+    return [...active].sort((a, b) => {
+        const cmp = compareStatRow(a, b, statSortCol.value);
+        return statSortDir.value === 'asc' ? cmp : -cmp;
+    });
+});
+
+const sortedEliminatedStats = computed(() => {
+    const eliminated = props.bettingStats.filter((p) => p.eliminated);
+    return [...eliminated].sort((a, b) => {
+        const cmp = compareStatRow(a, b, statSortCol.value);
+        return statSortDir.value === 'asc' ? cmp : -cmp;
+    });
+});
+
+function accuracyClass(pct: number | null): string {
+    if (pct === null) return 'text-gray-400';
+    if (pct >= 70)    return 'text-green-600 dark:text-green-400';
+    if (pct >= 40)    return 'text-yellow-600 dark:text-yellow-400';
+    return 'text-red-500 dark:text-red-400';
+}
+
+function accuracyBarClass(pct: number | null): string {
+    if (pct === null) return 'bg-gray-200 dark:bg-gray-600';
+    if (pct >= 70)    return 'bg-green-500';
+    if (pct >= 40)    return 'bg-yellow-500';
+    return 'bg-red-500';
+}
+
+const dangerZone = computed(() =>
+    props.ranking
+        .filter((p) => !p.eliminated && p.missed_count >= 1)
+        .sort((a, b) => b.missed_count - a.missed_count)
+);
 </script>
 
 <template>
@@ -197,6 +296,35 @@ function toggleSort(col: SortCol) {
 
         <div class="py-6">
             <div class="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
+
+                <!-- Strefa zagrożenia -->
+                <div v-if="dangerZone.length > 0" class="mb-6 overflow-hidden rounded-lg border border-orange-200 bg-orange-50 dark:border-orange-800/50 dark:bg-orange-950/30">
+                    <div class="flex items-center gap-2 border-b border-orange-200 px-4 py-2.5 dark:border-orange-800/50">
+                        <svg class="h-4 w-4 shrink-0 text-orange-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                        </svg>
+                        <span class="text-sm font-semibold text-orange-700 dark:text-orange-400">Strefa zagrożenia</span>
+                        <span class="text-xs text-orange-500 dark:text-orange-500">&mdash; eliminacja po 3 pominiętych typach</span>
+                    </div>
+                    <div class="flex flex-wrap gap-2 px-4 py-3">
+                        <div
+                            v-for="p in dangerZone"
+                            :key="p.id"
+                            class="flex items-center gap-1.5 rounded-full px-3 py-1 text-sm font-medium"
+                            :class="p.missed_count >= 2
+                                ? 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300'
+                                : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-300'"
+                        >
+                            <span>{{ p.name }}</span>
+                            <span
+                                class="rounded-full px-1.5 py-0.5 text-xs font-bold"
+                                :class="p.missed_count >= 2
+                                    ? 'bg-red-200 text-red-800 dark:bg-red-800 dark:text-red-100'
+                                    : 'bg-yellow-200 text-yellow-800 dark:bg-yellow-800 dark:text-yellow-100'"
+                            >{{ p.missed_count }}/3</span>
+                        </div>
+                    </div>
+                </div>
 
                 <!-- Chart -->
                 <div v-if="hasChartData" class="mb-6 overflow-hidden rounded-lg bg-white shadow dark:bg-gray-800">
@@ -345,6 +473,227 @@ function toggleSort(col: SortCol) {
                             class="rounded px-3 py-1.5 font-medium transition-colors disabled:opacity-40"
                             :class="page < totalPages ? 'hover:bg-gray-100 dark:hover:bg-gray-700' : ''"
                         >Następna →</button>
+                    </div>
+                </div>
+
+                <!-- Betting Stats Section -->
+                <div v-if="bettingStats.length > 0" class="mt-10">
+                    <h2 class="mb-4 text-xl font-bold text-gray-800 dark:text-gray-100">Statystyki typowania</h2>
+
+                    <!-- Desktop table -->
+                    <div class="hidden overflow-hidden rounded-lg bg-white shadow dark:bg-gray-800 sm:block">
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                                <thead class="bg-gray-50 dark:bg-gray-900">
+                                    <tr>
+                                        <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">
+                                            <button @click="toggleStatSort('name')" class="inline-flex items-center gap-1 hover:text-gray-700 dark:hover:text-gray-300">
+                                                Uczestnik<SortIcon col="name" :active-col="statSortCol" :dir="statSortDir" />
+                                            </button>
+                                        </th>
+                                        <th class="px-4 py-3 text-center text-xs font-medium uppercase tracking-wide text-gray-500">
+                                            <button @click="toggleStatSort('bets_placed')" class="inline-flex items-center gap-1 hover:text-gray-700 dark:hover:text-gray-300">
+                                                Typy<SortIcon col="bets_placed" :active-col="statSortCol" :dir="statSortDir" />
+                                            </button>
+                                        </th>
+                                        <th class="px-4 py-3 text-center text-xs font-medium uppercase tracking-wide text-gray-500">
+                                            <button @click="toggleStatSort('accuracy_pct')" class="inline-flex items-center gap-1 hover:text-gray-700 dark:hover:text-gray-300">
+                                                Trafność<SortIcon col="accuracy_pct" :active-col="statSortCol" :dir="statSortDir" />
+                                            </button>
+                                        </th>
+                                        <th class="px-4 py-3 text-center text-xs font-medium uppercase tracking-wide text-gray-500">
+                                            <button @click="toggleStatSort('exact_scores')" class="inline-flex items-center gap-1 hover:text-gray-700 dark:hover:text-gray-300">
+                                                Dokładne<SortIcon col="exact_scores" :active-col="statSortCol" :dir="statSortDir" />
+                                            </button>
+                                        </th>
+                                        <th class="px-4 py-3 text-center text-xs font-medium uppercase tracking-wide text-gray-500">
+                                            <button @click="toggleStatSort('current_streak')" class="inline-flex items-center gap-1 hover:text-gray-700 dark:hover:text-gray-300">
+                                                Seria<SortIcon col="current_streak" :active-col="statSortCol" :dir="statSortDir" />
+                                            </button>
+                                        </th>
+                                        <th class="px-4 py-3 text-center text-xs font-medium uppercase tracking-wide text-gray-500">
+                                            <button @click="toggleStatSort('best_streak')" class="inline-flex items-center gap-1 hover:text-gray-700 dark:hover:text-gray-300">
+                                                Najlepsza<SortIcon col="best_streak" :active-col="statSortCol" :dir="statSortDir" />
+                                            </button>
+                                        </th>
+                                        <th class="px-4 py-3 text-center text-xs font-medium uppercase tracking-wide text-gray-500">
+                                            <button @click="toggleStatSort('group')" class="inline-flex items-center gap-1 hover:text-gray-700 dark:hover:text-gray-300">
+                                                Grupy<SortIcon col="group" :active-col="statSortCol" :dir="statSortDir" />
+                                            </button>
+                                        </th>
+                                        <th class="px-4 py-3 text-center text-xs font-medium uppercase tracking-wide text-gray-500">
+                                            <button @click="toggleStatSort('knockout')" class="inline-flex items-center gap-1 hover:text-gray-700 dark:hover:text-gray-300">
+                                                Puchar<SortIcon col="knockout" :active-col="statSortCol" :dir="statSortDir" />
+                                            </button>
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
+                                    <tr
+                                        v-for="row in sortedActiveStats"
+                                        :key="row.id"
+                                        class="hover:bg-gray-50 dark:hover:bg-gray-700/50"
+                                    >
+                                        <td class="px-4 py-3 text-sm font-medium text-gray-900 dark:text-white">
+                                            {{ row.name }}
+                                        </td>
+                                        <td class="px-4 py-3 text-center text-sm text-gray-600 dark:text-gray-300">
+                                            {{ row.bets_placed }}/{{ row.total_finished }}
+                                        </td>
+                                        <td class="px-4 py-3">
+                                            <div class="flex items-center gap-2">
+                                                <div class="h-1.5 w-16 overflow-hidden rounded-full bg-gray-100 dark:bg-gray-700">
+                                                    <div
+                                                        class="h-full rounded-full transition-all"
+                                                        :class="accuracyBarClass(row.accuracy_pct)"
+                                                        :style="{ width: (row.accuracy_pct ?? 0) + '%' }"
+                                                    />
+                                                </div>
+                                                <span class="min-w-[2.5rem] text-right text-sm font-semibold" :class="accuracyClass(row.accuracy_pct)">
+                                                    {{ row.accuracy_pct !== null ? row.accuracy_pct + '%' : '—' }}
+                                                </span>
+                                            </div>
+                                        </td>
+                                        <td class="px-4 py-3 text-center text-sm text-gray-600 dark:text-gray-300">
+                                            <span v-if="row.exact_scores > 0" class="inline-flex items-center gap-1">
+                                                <span>⚽</span>
+                                                <span class="font-medium">{{ row.exact_scores }}</span>
+                                            </span>
+                                            <span v-else class="text-gray-300 dark:text-gray-600">—</span>
+                                        </td>
+                                        <td class="px-4 py-3 text-center text-sm text-gray-600 dark:text-gray-300">
+                                            <span v-if="row.current_streak > 0" class="inline-flex items-center gap-1 font-medium text-orange-500">
+                                                <span>🔥</span>{{ row.current_streak }}
+                                            </span>
+                                            <span v-else class="text-gray-300 dark:text-gray-600">—</span>
+                                        </td>
+                                        <td class="px-4 py-3 text-center text-sm font-medium text-gray-600 dark:text-gray-300">
+                                            {{ row.best_streak }}
+                                        </td>
+                                        <td class="px-4 py-3 text-center text-sm text-gray-600 dark:text-gray-300">
+                                            {{ row.group_correct }}/{{ row.group_bets }}
+                                        </td>
+                                        <td class="px-4 py-3 text-center text-sm text-gray-600 dark:text-gray-300">
+                                            <span v-if="row.knockout_bets > 0">{{ row.knockout_correct }}/{{ row.knockout_bets }}</span>
+                                            <span v-else class="text-gray-300 dark:text-gray-600">—</span>
+                                        </td>
+                                    </tr>
+
+                                    <!-- Eliminated separator -->
+                                    <template v-if="sortedEliminatedStats.length > 0">
+                                        <tr>
+                                            <td colspan="8" class="bg-gray-50 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-gray-400 dark:bg-gray-900/50 dark:text-gray-500">
+                                                Wyeliminowani
+                                            </td>
+                                        </tr>
+                                        <tr
+                                            v-for="row in sortedEliminatedStats"
+                                            :key="row.id"
+                                            class="opacity-60"
+                                        >
+                                            <td class="px-4 py-3 text-sm font-medium text-gray-500 line-through dark:text-gray-400">
+                                                {{ row.name }}
+                                            </td>
+                                            <td class="px-4 py-3 text-center text-sm text-gray-400">
+                                                {{ row.bets_placed }}/{{ row.total_finished }}
+                                            </td>
+                                            <td class="px-4 py-3">
+                                                <div class="flex items-center gap-2">
+                                                    <div class="h-1.5 w-16 overflow-hidden rounded-full bg-gray-100 dark:bg-gray-700">
+                                                        <div
+                                                            class="h-full rounded-full"
+                                                            :class="accuracyBarClass(row.accuracy_pct)"
+                                                            :style="{ width: (row.accuracy_pct ?? 0) + '%' }"
+                                                        />
+                                                    </div>
+                                                    <span class="min-w-[2.5rem] text-right text-sm font-semibold" :class="accuracyClass(row.accuracy_pct)">
+                                                        {{ row.accuracy_pct !== null ? row.accuracy_pct + '%' : '—' }}
+                                                    </span>
+                                                </div>
+                                            </td>
+                                            <td class="px-4 py-3 text-center text-sm text-gray-400">
+                                                <span v-if="row.exact_scores > 0" class="inline-flex items-center gap-1">⚽ {{ row.exact_scores }}</span>
+                                                <span v-else>—</span>
+                                            </td>
+                                            <td class="px-4 py-3 text-center text-sm text-gray-400">
+                                                <span v-if="row.current_streak > 0">🔥 {{ row.current_streak }}</span>
+                                                <span v-else>—</span>
+                                            </td>
+                                            <td class="px-4 py-3 text-center text-sm text-gray-400">{{ row.best_streak }}</td>
+                                            <td class="px-4 py-3 text-center text-sm text-gray-400">{{ row.group_correct }}/{{ row.group_bets }}</td>
+                                            <td class="px-4 py-3 text-center text-sm text-gray-400">
+                                                <span v-if="row.knockout_bets > 0">{{ row.knockout_correct }}/{{ row.knockout_bets }}</span>
+                                                <span v-else>—</span>
+                                            </td>
+                                        </tr>
+                                    </template>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Mobile cards -->
+                    <div class="space-y-3 sm:hidden">
+                        <template v-for="row in [...sortedActiveStats, ...sortedEliminatedStats]" :key="row.id">
+                            <div
+                                class="rounded-lg bg-white p-4 shadow dark:bg-gray-800"
+                                :class="{ 'opacity-60': row.eliminated }"
+                            >
+                                <div class="mb-3 flex items-start justify-between">
+                                    <span
+                                        class="text-base font-semibold text-gray-900 dark:text-white"
+                                        :class="{ 'line-through text-gray-500 dark:text-gray-400': row.eliminated }"
+                                    >
+                                        {{ row.name }}
+                                    </span>
+                                    <span class="text-2xl font-bold" :class="accuracyClass(row.accuracy_pct)">
+                                        {{ row.accuracy_pct !== null ? row.accuracy_pct + '%' : '—' }}
+                                    </span>
+                                </div>
+                                <div class="mb-3 h-2 overflow-hidden rounded-full bg-gray-100 dark:bg-gray-700">
+                                    <div
+                                        class="h-full rounded-full transition-all"
+                                        :class="accuracyBarClass(row.accuracy_pct)"
+                                        :style="{ width: (row.accuracy_pct ?? 0) + '%' }"
+                                    />
+                                </div>
+                                <div class="grid grid-cols-3 gap-2 text-center text-xs">
+                                    <div class="rounded bg-gray-50 px-2 py-1.5 dark:bg-gray-700/50">
+                                        <div class="font-semibold text-gray-700 dark:text-gray-200">{{ row.bets_placed }}/{{ row.total_finished }}</div>
+                                        <div class="text-gray-400">Typy</div>
+                                    </div>
+                                    <div class="rounded bg-gray-50 px-2 py-1.5 dark:bg-gray-700/50">
+                                        <div class="font-semibold text-gray-700 dark:text-gray-200">
+                                            <span v-if="row.exact_scores > 0">⚽ {{ row.exact_scores }}</span>
+                                            <span v-else class="text-gray-300">—</span>
+                                        </div>
+                                        <div class="text-gray-400">Dokładne</div>
+                                    </div>
+                                    <div class="rounded bg-gray-50 px-2 py-1.5 dark:bg-gray-700/50">
+                                        <div class="font-semibold text-orange-500">
+                                            <span v-if="row.current_streak > 0">🔥 {{ row.current_streak }}</span>
+                                            <span v-else class="text-gray-300 dark:text-gray-600">—</span>
+                                        </div>
+                                        <div class="text-gray-400">Seria</div>
+                                    </div>
+                                    <div class="rounded bg-gray-50 px-2 py-1.5 dark:bg-gray-700/50">
+                                        <div class="font-semibold text-gray-700 dark:text-gray-200">{{ row.best_streak }}</div>
+                                        <div class="text-gray-400">Najlepsza</div>
+                                    </div>
+                                    <div class="rounded bg-gray-50 px-2 py-1.5 dark:bg-gray-700/50">
+                                        <div class="font-semibold text-gray-700 dark:text-gray-200">{{ row.group_correct }}/{{ row.group_bets }}</div>
+                                        <div class="text-gray-400">Grupy</div>
+                                    </div>
+                                    <div class="rounded bg-gray-50 px-2 py-1.5 dark:bg-gray-700/50">
+                                        <div class="font-semibold text-gray-700 dark:text-gray-200">
+                                            <span v-if="row.knockout_bets > 0">{{ row.knockout_correct }}/{{ row.knockout_bets }}</span>
+                                            <span v-else class="text-gray-300 dark:text-gray-600">—</span>
+                                        </div>
+                                        <div class="text-gray-400">Puchar</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </template>
                     </div>
                 </div>
 

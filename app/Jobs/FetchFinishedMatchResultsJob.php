@@ -54,6 +54,9 @@ class FetchFinishedMatchResultsJob implements ShouldQueue
             ]);
 
             $this->syncGoals($espnApi, $match);
+            $this->syncCards($espnApi, $match);
+            $this->syncMatchStats($espnApi, $match);
+            $this->syncLineup($espnApi, $match);
 
             $match->refresh()->load('bets');
             $betService->resolveBets($match);
@@ -65,5 +68,20 @@ class FetchFinishedMatchResultsJob implements ShouldQueue
     public function syncGoals(EspnApiService $espnApi, WorldMatch $match): void
     {
         $espnApi->syncGoalsForMatch($match);
+    }
+
+    public function syncCards(EspnApiService $espnApi, WorldMatch $match): void
+    {
+        $espnApi->syncCardsForMatch($match);
+    }
+
+    public function syncMatchStats(EspnApiService $espnApi, WorldMatch $match): void
+    {
+        $espnApi->syncMatchStatsForMatch($match);
+    }
+
+    private function syncLineup(EspnApiService $espnApi, WorldMatch $match): void
+    {
+        $espnApi->syncLineupForMatch($match);
     }
 }

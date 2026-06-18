@@ -57,6 +57,16 @@ class Dashboard extends \Filament\Pages\Dashboard
                 ->modalDescription('Uruchomi komendę mundial:resolve-bets.')
                 ->modalSubmitActionLabel('Uruchom')
                 ->action(fn () => $this->runCommand(['php84-cli', 'artisan', 'mundial:resolve-bets'], 'Rozliczenie typów')),
+
+            Action::make('backfill_details')
+                ->label('Backfill kartki/składy/statystyki')
+                ->icon('heroicon-o-document-magnifying-glass')
+                ->color('warning')
+                ->requiresConfirmation()
+                ->modalHeading('Backfill szczegółów meczów')
+                ->modalDescription('Pobierze z ESPN kartki, statystyki i składy dla wszystkich zakończonych meczów, którym brakuje tych danych.')
+                ->modalSubmitActionLabel('Uruchom')
+                ->action(fn () => $this->runCommand(['php84-cli', 'artisan', 'mundial:backfill-details'], 'Backfill szczegółów')),
         ];
     }
 }

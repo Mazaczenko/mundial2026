@@ -155,6 +155,20 @@ function truncateName(name: string, max = 12): string {
     return name.length > max ? name.slice(0, max) + '…' : name;
 }
 
+function barWidths(stats: Record<'1'|'X'|'2', number>): Record<'1'|'X'|'2', number> {
+    const opts = ['1', 'X', '2'] as const;
+    const nonZero = opts.filter(o => stats[o] > 0);
+    const count = nonZero.length;
+    if (count === 0) return stats;
+    const minPer = count >= 2 ? 20 : 0;
+    const remaining = 100 - minPer * count;
+    const result = {} as Record<'1'|'X'|'2', number>;
+    for (const o of opts) {
+        result[o] = stats[o] === 0 ? 0 : minPer + (stats[o] / 100) * remaining;
+    }
+    return result;
+}
+
 // Empty state message
 const emptyMessage = computed(() => {
     if (hasActiveFilters.value) {
@@ -454,18 +468,18 @@ const emptyMessage = computed(() => {
                                 <div v-if="match.bet_stats" class="mt-3">
                                     <div class="flex overflow-hidden rounded-md text-xs font-semibold">
                                         <div
-                                            v-for="opt in ['1', 'X', '2']"
+                                            v-for="opt in (['1', 'X', '2'] as const)"
                                             :key="opt"
                                             class="flex items-center justify-center gap-1 overflow-hidden py-1.5 transition-all"
                                             :class="{
                                                 'bg-indigo-600 text-white': match.my_bet?.prediction_1x2 === opt,
                                                 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300': match.my_bet?.prediction_1x2 !== opt,
                                             }"
-                                            :style="{ width: match.bet_stats[opt as '1'|'X'|'2'] + '%' }"
+                                            :style="{ width: barWidths(match.bet_stats)[opt] + '%' }"
                                         >
-                                            <template v-if="match.bet_stats[opt as '1'|'X'|'2'] >= 8">
+                                            <template v-if="match.bet_stats[opt] > 0">
                                                 <span>{{ opt }}</span>
-                                                <span v-if="match.bet_stats[opt as '1'|'X'|'2'] >= 15" class="opacity-75">{{ match.bet_stats[opt as '1'|'X'|'2'] }}%</span>
+                                                <span class="opacity-75">{{ match.bet_stats[opt] }}%</span>
                                             </template>
                                         </div>
                                     </div>

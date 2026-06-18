@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
-import { Head, usePage } from '@inertiajs/vue3';
+import { Head, Link, usePage } from '@inertiajs/vue3';
 import { ref, computed, defineComponent, h } from 'vue';
 
 const SortIcon = defineComponent({
@@ -314,6 +314,20 @@ function accuracyBarClass(pct: number | null): string {
     return 'bg-red-500';
 }
 
+const BADGE_EMOJIS: Record<string, string> = {
+    sharp_shooter: '🎯',
+    hat_trick: '🔥',
+    on_fire: '⚡',
+    reliable: '📋',
+    black_horse: '🐴',
+    contrarian: '🤔',
+    group_expert: '📊',
+};
+
+function badgeEmoji(key: string): string {
+    return BADGE_EMOJIS[key] ?? '🏅';
+}
+
 </script>
 
 <template>
@@ -410,12 +424,38 @@ function accuracyBarClass(pct: number | null): string {
                                 class="hover:bg-gray-50 dark:hover:bg-gray-700/50"
                             >
                                 <td class="px-4 py-3 text-sm font-medium text-gray-500">
-                                    {{ rankOf(entry) }}
+                                    <div class="flex items-center gap-1">
+                                        <span>{{ rankOf(entry) }}</span>
+                                        <span
+                                            v-if="entry.position_change !== null && entry.position_change > 0"
+                                            class="text-xs text-green-600 dark:text-green-400"
+                                            :title="`Awans o ${entry.position_change} miejsc`"
+                                        >▲{{ entry.position_change }}</span>
+                                        <span
+                                            v-else-if="entry.position_change !== null && entry.position_change < 0"
+                                            class="text-xs text-red-500 dark:text-red-400"
+                                            :title="`Spadek o ${Math.abs(entry.position_change)} miejsc`"
+                                        >▼{{ Math.abs(entry.position_change) }}</span>
+                                        <span
+                                            v-else-if="entry.position_change === 0"
+                                            class="text-xs text-gray-400 dark:text-gray-600"
+                                            title="Bez zmian"
+                                        >—</span>
+                                    </div>
                                 </td>
                                 <td class="px-4 py-3">
                                     <div class="flex items-center gap-2">
-                                        <span class="font-medium text-gray-900 dark:text-white">{{ entry.name }}</span>
+                                        <Link
+                                            :href="route('participants.show', entry.id)"
+                                            class="font-medium text-gray-900 hover:text-indigo-600 dark:text-white dark:hover:text-indigo-400"
+                                        >{{ entry.name }}</Link>
                                         <span v-if="entry.paid_entry" title="Wpłacił 10 zł">💰</span>
+                                        <span
+                                            v-for="badge in entry.badges"
+                                            :key="badge.key"
+                                            :title="badge.label"
+                                            class="cursor-default text-sm leading-none"
+                                        >{{ badgeEmoji(badge.key) }}</span>
                                     </div>
                                 </td>
                                 <td class="px-4 py-3 text-center">
@@ -760,7 +800,10 @@ function accuracyBarClass(pct: number | null): string {
                                     <td class="px-4 py-3 text-sm">🚫</td>
                                     <td class="px-4 py-3">
                                         <div class="flex items-center gap-2">
-                                            <span class="font-medium line-through">{{ entry.name }}</span>
+                                            <Link
+                                                :href="route('participants.show', entry.id)"
+                                                class="font-medium line-through hover:text-indigo-400"
+                                            >{{ entry.name }}</Link>
                                             <span v-if="entry.paid_entry" title="Wpłacił 10 zł">💰</span>
                                         </div>
                                     </td>

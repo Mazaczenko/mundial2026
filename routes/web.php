@@ -4,9 +4,11 @@ use App\Http\Controllers\Auth\ForgotPasswordController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\ResetPasswordController;
 use App\Http\Controllers\BetController;
+use App\Http\Controllers\CompareController;
 use App\Http\Controllers\KnockoutController;
 use App\Http\Controllers\MatchResultsController;
 use App\Http\Controllers\NotificationsController;
+use App\Http\Controllers\ParticipantController;
 use App\Http\Controllers\PushSubscriptionController;
 use App\Http\Controllers\RankingController;
 use App\Http\Controllers\ScorersController;
@@ -44,6 +46,8 @@ Route::middleware('auth')->group(function () {
     Route::get('/squads', [SquadController::class, 'index'])->name('squads.index');
     Route::get('/knockout', [KnockoutController::class, 'index'])->name('knockout.index');
     Route::get('/results', [MatchResultsController::class, 'index'])->name('results.index');
+    Route::get('/participants/{participant}', [ParticipantController::class, 'show'])->name('participants.show');
+    Route::get('/compare', [CompareController::class, 'index'])->name('compare.index');
 
     Route::post('/push/subscribe', [PushSubscriptionController::class, 'store'])->name('push.subscribe');
     Route::post('/push/unsubscribe', [PushSubscriptionController::class, 'destroy'])->name('push.unsubscribe');

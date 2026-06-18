@@ -3,7 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Models\Participant;
+use App\Models\RankingSnapshot;
 use App\Models\WorldMatch;
+use App\Services\BadgeService;
 use App\Services\RankingService;
 use Illuminate\Support\Collection;
 use Inertia\Inertia;
@@ -13,16 +15,83 @@ class RankingController extends Controller
 {
     public function __construct(
         private readonly RankingService $rankingService,
+        private readonly BadgeService $badgeService,
     ) {}
 
     public function index(): Response
     {
+        $ranking = $this->rankingService->getRanking();
+        $ranking = $this->enrichWithPositionChange($ranking);
+        $ranking = $this->enrichWithBadges($ranking);
+
         return Inertia::render('Ranking/Index', [
-            'ranking' => $this->rankingService->getRanking(),
+            'ranking' => $ranking,
             'chartData' => $this->buildChartData(),
             'playedMatchesCount' => WorldMatch::finished()->count(),
             'bettingStats' => $this->buildBettingStats(),
         ]);
+    }
+
+    private function enrichWithPositionChange(Collection $ranking): Collection
+    {
+        $lastMatchId = RankingSnapshot::query()
+            ->orderByDesc('world_match_id')
+            ->value('world_match_id');
+
+        if ($lastMatchId === null) {
+            return $ranking->map(fn ($entry) => array_merge($entry, [
+                'position_change' => null,
+                'previous_position' => null,
+            ]));
+        }
+
+        $snapshots = RankingSnapshot::where('world_match_id', $lastMatchId)
+            ->get(['participant_id', 'position'])
+            ->keyBy('participant_id');
+
+        $active = $ranking->where('eliminated', false)->values();
+
+        return $ranking->map(function (array $entry) use ($snapshots, $active) {
+            $currentPosition = $entry['eliminated']
+                ? 999
+                : ($active->search(fn ($e) => $e['id'] === $entry['id']) + 1);
+
+            $snapshot = $snapshots->get($entry['id']);
+            $previousPosition = $snapshot?->position;
+
+            $positionChange = $previousPosition !== null
+                ? $previousPosition - $currentPosition
+                : null;
+
+            return array_merge($entry, [
+                'position_change' => $positionChange,
+                'previous_position' => $previousPosition,
+            ]);
+        });
+    }
+
+    private function enrichWithBadges(Collection $ranking): Collection
+    {
+        $finishedMatches = WorldMatch::finished()
+            ->orderBy('kickoff_at')
+            ->get(['id', 'stage', 'score_home', 'score_away', 'kickoff_at']);
+
+        $participants = Participant::with([
+            'bets' => fn ($q) => $q->whereIn('match_id', $finishedMatches->pluck('id')),
+        ])->get()->keyBy('id');
+
+        return $ranking->map(function (array $entry) use ($participants, $finishedMatches) {
+            $participant = $participants->get($entry['id']);
+            if (! $participant) {
+                return array_merge($entry, ['badges' => []]);
+            }
+
+            $allBadges = $this->badgeService->getBadges($participant, $finishedMatches);
+            $earnedBadges = array_values(array_filter($allBadges, fn ($b) => $b['earned']));
+            $miniBadges = array_map(fn ($b) => ['key' => $b['key'], 'label' => $b['label']], $earnedBadges);
+
+            return array_merge($entry, ['badges' => $miniBadges]);
+        });
     }
 
     /** @return list<array<string, mixed>> */
@@ -52,7 +121,6 @@ class RankingController extends Controller
             $betsPlaced = $bets->count();
             $correct1x2 = $bets->where('is_correct', true)->count();
 
-            // Exact scores
             $exactScores = $bets->filter(function ($bet) use ($finishedMap) {
                 $match = $finishedMap->get($bet->match_id);
                 if (! $match || $bet->predicted_home === null || $bet->predicted_away === null) {
@@ -63,7 +131,6 @@ class RankingController extends Controller
                     && (int) $bet->predicted_away === (int) $match->score_away;
             })->count();
 
-            // Stage breakdown — index bets by match_id for O(1) lookup
             $betsByMatch = $bets->keyBy('match_id');
 
             $groupBets = $groupCorrect = $knockoutBets = $knockoutCorrect = 0;
@@ -86,12 +153,10 @@ class RankingController extends Controller
                 }
             }
 
-            // Streaks — iterate matches in chronological order
             $currentStreak = 0;
             $bestStreak = 0;
             $running = 0;
 
-            // Walk finished matches newest-first for current streak
             $currentStreakDone = false;
             foreach ($finishedMatches->reverse() as $match) {
                 if ($currentStreakDone) {
@@ -105,7 +170,6 @@ class RankingController extends Controller
                 }
             }
 
-            // Walk oldest-first for best streak
             foreach ($finishedMatches as $match) {
                 $bet = $betsByMatch->get($match->id);
                 if ($bet && $bet->is_correct) {
@@ -118,7 +182,6 @@ class RankingController extends Controller
                 }
             }
 
-            // Favourite prediction
             $predCounts = $bets->groupBy('prediction_1x2')
                 ->map(fn ($g) => $g->count());
             $favPrediction = $predCounts->isEmpty()
@@ -164,7 +227,6 @@ class RankingController extends Controller
 
         $matchIds = $matches->pluck('id')->all();
 
-        // Index match scores for exact-score bonus calculation
         $matchScores = $matches->keyBy('id');
 
         $participants = Participant::with([
@@ -178,12 +240,11 @@ class RankingController extends Controller
 
             $cumulative = 0;
             $data = array_map(function (int $mid) use ($betsByMatch, $matchScores, &$cumulative) {
-                $bet   = $betsByMatch->get($mid);
+                $bet = $betsByMatch->get($mid);
                 $match = $matchScores->get($mid);
 
                 if ($bet && $bet->is_correct) {
                     $cumulative++;
-                    // Exact score bonus (+1) for knockout matches with predicted score
                     if (
                         $bet->predicted_home !== null &&
                         $bet->predicted_away !== null &&
@@ -200,12 +261,12 @@ class RankingController extends Controller
 
             return [
                 'label' => $participant->name,
-                'data'  => array_values($data),
+                'data' => array_values($data),
             ];
         })->values();
 
         return [
-            'labels'   => $labels,
+            'labels' => $labels,
             'datasets' => $datasets,
         ];
     }

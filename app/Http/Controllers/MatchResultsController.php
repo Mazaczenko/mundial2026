@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Bet;
 use App\Models\Participant;
 use App\Models\WorldMatch;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -101,10 +102,7 @@ class MatchResultsController extends Controller
                 'result_type' => $match->result_type,
                 'correct_bets' => $match->bets->where('is_correct', true)->count(),
                 'total_bets' => $match->bets->count(),
-                'my_bet' => $myBet ? [
-                    'prediction_1x2' => $myBet->prediction_1x2,
-                    'is_correct' => $myBet->is_correct,
-                ] : null,
+                'my_bet' => $myBet ? $this->buildMyBet($myBet, $match->bets) : null,
                 'goals' => $match->goals->map(fn ($g) => [
                     'player_name' => $g->player_name,
                     'team_side' => $g->team_side,
@@ -180,6 +178,21 @@ class MatchResultsController extends Controller
                 'per_page' => $perPage,
             ],
         ]);
+    }
+
+    private function buildMyBet(Bet $myBet, Collection $allBets): array
+    {
+        $totalBets = $allBets->count();
+        $samePrediction = $allBets->where('prediction_1x2', $myBet->prediction_1x2)->count();
+        $groupPctSame = $totalBets > 0 ? (int) round($samePrediction / $totalBets * 100) : 0;
+
+        return [
+            'prediction_1x2' => $myBet->prediction_1x2,
+            'is_correct' => $myBet->is_correct,
+            'group_pct_same' => $groupPctSame,
+            'was_majority' => $groupPctSame > 50,
+            'total_bets_on_match' => $totalBets,
+        ];
     }
 
     private function computeStreak(int $participantId, array $finishedIds): int

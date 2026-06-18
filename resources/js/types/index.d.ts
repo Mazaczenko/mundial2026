@@ -49,6 +49,11 @@ export interface MatchData {
     }>;
 }
 
+export interface Badge {
+    key: string;
+    label: string;
+}
+
 export interface RankingEntry {
     id: number;
     name: string;
@@ -61,6 +66,9 @@ export interface RankingEntry {
     eliminated: boolean;
     bets_count: number;
     missed_count: number;
+    position_change: number | null;
+    previous_position: number | null;
+    badges: Badge[];
 }
 
 export interface GroupStanding {

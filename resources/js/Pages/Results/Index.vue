@@ -21,6 +21,9 @@ interface Card {
 interface MyBet {
     prediction_1x2: '1' | 'X' | '2';
     is_correct: boolean | null;
+    group_pct_same: number;
+    was_majority: boolean;
+    total_bets_on_match: number;
 }
 
 interface AllBet {
@@ -293,6 +296,33 @@ const positionColor = (i: number) => {
     if (i === 2) return 'text-amber-600 dark:text-amber-500';
     return 'text-gray-300 dark:text-gray-600';
 };
+
+function majorityTagText(bet: MyBet): string {
+    const pct = bet.group_pct_same;
+    if (bet.is_correct === true && !bet.was_majority) {
+        return `🐴 Mniejszość (${pct}%)`;
+    }
+    if (bet.is_correct === true && bet.was_majority) {
+        return `✓ Większość (${pct}%)`;
+    }
+    if (bet.is_correct === false && !bet.was_majority) {
+        return `✗ Mniejszość (${pct}%)`;
+    }
+    return `✗ Większość (${pct}%)`;
+}
+
+function majorityTagClass(bet: MyBet): string {
+    if (bet.is_correct === true && !bet.was_majority) {
+        return 'text-purple-600 dark:text-purple-400';
+    }
+    if (bet.is_correct === true && bet.was_majority) {
+        return 'text-gray-400 dark:text-gray-500';
+    }
+    if (bet.is_correct === false && bet.was_majority) {
+        return 'text-red-400 dark:text-red-500';
+    }
+    return 'text-gray-400 dark:text-gray-500';
+}
 </script>
 
 <template>
@@ -445,19 +475,25 @@ const positionColor = (i: number) => {
 
                                     <!-- My bet -->
                                     <td class="px-4 py-3 text-center">
-                                        <span
-                                            v-if="match.my_bet"
-                                            class="inline-flex items-center gap-0.5 text-sm font-bold"
-                                            :class="{
-                                                'text-green-600 dark:text-green-400': match.my_bet.is_correct === true,
-                                                'text-red-500 dark:text-red-400': match.my_bet.is_correct === false,
-                                                'text-gray-500 dark:text-gray-400': match.my_bet.is_correct === null,
-                                            }"
-                                        >
-                                            {{ match.my_bet.prediction_1x2 }}
-                                            <span v-if="match.my_bet.is_correct === true">✓</span>
-                                            <span v-else-if="match.my_bet.is_correct === false">✗</span>
-                                        </span>
+                                        <div v-if="match.my_bet" class="flex flex-col items-center gap-0.5">
+                                            <span
+                                                class="inline-flex items-center gap-0.5 text-sm font-bold"
+                                                :class="{
+                                                    'text-green-600 dark:text-green-400': match.my_bet.is_correct === true,
+                                                    'text-red-500 dark:text-red-400': match.my_bet.is_correct === false,
+                                                    'text-gray-500 dark:text-gray-400': match.my_bet.is_correct === null,
+                                                }"
+                                            >
+                                                {{ match.my_bet.prediction_1x2 }}
+                                                <span v-if="match.my_bet.is_correct === true">✓</span>
+                                                <span v-else-if="match.my_bet.is_correct === false">✗</span>
+                                            </span>
+                                            <span
+                                                v-if="match.my_bet.is_correct !== null"
+                                                class="text-xs leading-none"
+                                                :class="majorityTagClass(match.my_bet)"
+                                            >{{ majorityTagText(match.my_bet) }}</span>
+                                        </div>
                                         <span v-else class="text-gray-300 dark:text-gray-600">–</span>
                                     </td>
 
@@ -701,19 +737,25 @@ const positionColor = (i: number) => {
                         <div class="flex items-center justify-between border-t border-gray-100 px-4 py-2 dark:border-gray-700">
                             <div class="flex items-center gap-1.5">
                                 <span class="text-xs text-gray-400">Twój typ:</span>
-                                <span
-                                    v-if="match.my_bet"
-                                    class="text-sm font-bold"
-                                    :class="{
-                                        'text-green-600 dark:text-green-400': match.my_bet.is_correct === true,
-                                        'text-red-500 dark:text-red-400': match.my_bet.is_correct === false,
-                                        'text-gray-500 dark:text-gray-400': match.my_bet.is_correct === null,
-                                    }"
-                                >
-                                    {{ match.my_bet.prediction_1x2 }}
-                                    <span v-if="match.my_bet.is_correct === true">✓</span>
-                                    <span v-else-if="match.my_bet.is_correct === false">✗</span>
-                                </span>
+                                <div v-if="match.my_bet" class="flex flex-col items-start">
+                                    <span
+                                        class="text-sm font-bold"
+                                        :class="{
+                                            'text-green-600 dark:text-green-400': match.my_bet.is_correct === true,
+                                            'text-red-500 dark:text-red-400': match.my_bet.is_correct === false,
+                                            'text-gray-500 dark:text-gray-400': match.my_bet.is_correct === null,
+                                        }"
+                                    >
+                                        {{ match.my_bet.prediction_1x2 }}
+                                        <span v-if="match.my_bet.is_correct === true">✓</span>
+                                        <span v-else-if="match.my_bet.is_correct === false">✗</span>
+                                    </span>
+                                    <span
+                                        v-if="match.my_bet.is_correct !== null"
+                                        class="text-xs leading-none"
+                                        :class="majorityTagClass(match.my_bet)"
+                                    >{{ majorityTagText(match.my_bet) }}</span>
+                                </div>
                                 <span v-else class="text-sm font-bold text-gray-300 dark:text-gray-600">–</span>
                             </div>
                             <div class="flex items-center gap-2">

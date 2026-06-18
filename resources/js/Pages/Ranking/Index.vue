@@ -148,6 +148,9 @@ const page = ref(1);
 
 const statSortCol = ref<StatSortCol>('accuracy_pct');
 const statSortDir = ref<SortDir>('desc');
+const STAT_PER_PAGE = 25;
+const statSearch = ref('');
+const statPage = ref(1);
 
 const active = computed(() => props.ranking.filter((p) => !p.eliminated));
 const eliminated = computed(() => props.ranking.filter((p) => p.eliminated));
@@ -235,6 +238,12 @@ function toggleStatSort(col: StatSortCol) {
         statSortCol.value = col;
         statSortDir.value = statDefaultDir[col];
     }
+    statPage.value = 1;
+}
+
+function setStatSearch(val: string) {
+    statSearch.value = val;
+    statPage.value = 1;
 }
 
 function compareStatRow(a: BettingStatEntry, b: BettingStatEntry, col: StatSortCol): number {
@@ -270,6 +279,25 @@ const sortedEliminatedStats = computed(() => {
         const cmp = compareStatRow(a, b, statSortCol.value);
         return statSortDir.value === 'asc' ? cmp : -cmp;
     });
+});
+
+const filteredSortedActiveStats = computed(() => {
+    if (!statSearch.value.trim()) return sortedActiveStats.value;
+    const q = statSearch.value.toLowerCase();
+    return sortedActiveStats.value.filter((r) => r.name.toLowerCase().includes(q));
+});
+
+const filteredSortedEliminatedStats = computed(() => {
+    if (!statSearch.value.trim()) return sortedEliminatedStats.value;
+    const q = statSearch.value.toLowerCase();
+    return sortedEliminatedStats.value.filter((r) => r.name.toLowerCase().includes(q));
+});
+
+const statTotalPages = computed(() => Math.ceil(filteredSortedActiveStats.value.length / STAT_PER_PAGE));
+
+const paginatedActiveStats = computed(() => {
+    const start = (statPage.value - 1) * STAT_PER_PAGE;
+    return filteredSortedActiveStats.value.slice(start, start + STAT_PER_PAGE);
 });
 
 function accuracyClass(pct: number | null): string {
@@ -447,7 +475,23 @@ function accuracyBarClass(pct: number | null): string {
 
                 <!-- Betting Stats Section -->
                 <div v-if="bettingStats.length > 0" class="mt-10">
-                    <h2 class="mb-4 text-xl font-bold text-gray-800 dark:text-gray-100">Statystyki typowania</h2>
+                    <div class="mb-4 flex flex-wrap items-center gap-3">
+                        <h2 class="text-xl font-bold text-gray-800 dark:text-gray-100">Statystyki typowania</h2>
+                        <div class="flex flex-1 items-center sm:ml-4">
+                            <div class="relative min-w-[160px] flex-1">
+                                <svg class="pointer-events-none absolute inset-y-0 left-2.5 my-auto h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z" />
+                                </svg>
+                                <input
+                                    :value="statSearch"
+                                    @input="setStatSearch(($event.target as HTMLInputElement).value)"
+                                    type="search"
+                                    placeholder="Szukaj uczestnika…"
+                                    class="w-full rounded-lg border border-gray-300 bg-white py-1.5 pl-8 pr-3 text-sm focus:border-indigo-400 focus:outline-none focus:ring-1 focus:ring-indigo-400 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+                                />
+                            </div>
+                        </div>
+                    </div>
 
                     <!-- Desktop table -->
                     <div class="hidden overflow-hidden rounded-lg bg-white shadow dark:bg-gray-800 sm:block">
@@ -499,7 +543,7 @@ function accuracyBarClass(pct: number | null): string {
                                 </thead>
                                 <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
                                     <tr
-                                        v-for="row in sortedActiveStats"
+                                        v-for="row in paginatedActiveStats"
                                         :key="row.id"
                                         class="hover:bg-gray-50 dark:hover:bg-gray-700/50"
                                     >
@@ -549,14 +593,14 @@ function accuracyBarClass(pct: number | null): string {
                                     </tr>
 
                                     <!-- Eliminated separator -->
-                                    <template v-if="sortedEliminatedStats.length > 0">
+                                    <template v-if="filteredSortedEliminatedStats.length > 0">
                                         <tr>
                                             <td colspan="8" class="bg-gray-50 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-gray-400 dark:bg-gray-900/50 dark:text-gray-500">
                                                 Wyeliminowani
                                             </td>
                                         </tr>
                                         <tr
-                                            v-for="row in sortedEliminatedStats"
+                                            v-for="row in filteredSortedEliminatedStats"
                                             :key="row.id"
                                             class="opacity-60"
                                         >
@@ -601,9 +645,28 @@ function accuracyBarClass(pct: number | null): string {
                         </div>
                     </div>
 
+                    <!-- Stats pagination -->
+                    <div v-if="statTotalPages > 1" class="mt-4 hidden items-center justify-between text-sm text-gray-500 dark:text-gray-400 sm:flex">
+                        <span>{{ filteredSortedActiveStats.length }} uczestników · strona {{ statPage }}/{{ statTotalPages }}</span>
+                        <div class="flex gap-1">
+                            <button
+                                @click="statPage--"
+                                :disabled="statPage === 1"
+                                class="rounded px-3 py-1.5 font-medium transition-colors disabled:opacity-40"
+                                :class="statPage > 1 ? 'hover:bg-gray-100 dark:hover:bg-gray-700' : ''"
+                            >← Poprzednia</button>
+                            <button
+                                @click="statPage++"
+                                :disabled="statPage === statTotalPages"
+                                class="rounded px-3 py-1.5 font-medium transition-colors disabled:opacity-40"
+                                :class="statPage < statTotalPages ? 'hover:bg-gray-100 dark:hover:bg-gray-700' : ''"
+                            >Następna →</button>
+                        </div>
+                    </div>
+
                     <!-- Mobile cards -->
                     <div class="space-y-3 sm:hidden">
-                        <template v-for="row in [...sortedActiveStats, ...sortedEliminatedStats]" :key="row.id">
+                        <template v-for="row in [...paginatedActiveStats, ...filteredSortedEliminatedStats]" :key="row.id">
                             <div
                                 class="rounded-lg bg-white p-4 shadow dark:bg-gray-800"
                                 :class="{ 'opacity-60': row.eliminated }"
@@ -663,6 +726,25 @@ function accuracyBarClass(pct: number | null): string {
                                 </div>
                             </div>
                         </template>
+                    </div>
+
+                    <!-- Stats pagination mobile -->
+                    <div v-if="statTotalPages > 1" class="mt-4 flex items-center justify-between text-sm text-gray-500 dark:text-gray-400 sm:hidden">
+                        <span>{{ filteredSortedActiveStats.length }} uczestników · strona {{ statPage }}/{{ statTotalPages }}</span>
+                        <div class="flex gap-1">
+                            <button
+                                @click="statPage--"
+                                :disabled="statPage === 1"
+                                class="rounded px-3 py-1.5 font-medium transition-colors disabled:opacity-40"
+                                :class="statPage > 1 ? 'hover:bg-gray-100 dark:hover:bg-gray-700' : ''"
+                            >← Poprzednia</button>
+                            <button
+                                @click="statPage++"
+                                :disabled="statPage === statTotalPages"
+                                class="rounded px-3 py-1.5 font-medium transition-colors disabled:opacity-40"
+                                :class="statPage < statTotalPages ? 'hover:bg-gray-100 dark:hover:bg-gray-700' : ''"
+                            >Następna →</button>
+                        </div>
                     </div>
                 </div>
 

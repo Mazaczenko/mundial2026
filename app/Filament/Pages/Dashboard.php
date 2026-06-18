@@ -8,6 +8,34 @@ use Symfony\Component\Process\Process;
 
 class Dashboard extends \Filament\Pages\Dashboard
 {
+    private function runCommand(array $command, string $label): void
+    {
+        $process = new Process(command: $command, cwd: base_path(), timeout: 300);
+        $process->run();
+
+        $output = trim($process->getOutput()."\n".$process->getErrorOutput());
+
+        if (mb_strlen($output) > 2000) {
+            $output = mb_substr($output, 0, 2000)."\n…(output truncated)";
+        }
+
+        if ($process->isSuccessful()) {
+            Notification::make()
+                ->title($label.' zakończone')
+                ->body($output ?: 'Brak danych wyjściowych.')
+                ->success()
+                ->persistent()
+                ->send();
+        } else {
+            Notification::make()
+                ->title($label.' nie powiodło się (kod: '.$process->getExitCode().')')
+                ->body($output ?: 'Brak danych wyjściowych.')
+                ->danger()
+                ->persistent()
+                ->send();
+        }
+    }
+
     protected function getHeaderActions(): array
     {
         return [
@@ -18,38 +46,17 @@ class Dashboard extends \Filament\Pages\Dashboard
                 ->modalHeading('Synchronizacja danych')
                 ->modalDescription('Uruchomi komendę mundial:sync --all. Operacja może potrwać kilka minut.')
                 ->modalSubmitActionLabel('Uruchom')
-                ->action(function (): void {
-                    $process = new Process(
-                        command: ['php84-cli', 'artisan', 'mundial:sync', '--all'],
-                        cwd: base_path(),
-                        timeout: 300,
-                    );
+                ->action(fn () => $this->runCommand(['php84-cli', 'artisan', 'mundial:sync', '--all'], 'Synchronizacja')),
 
-                    $process->run();
-
-                    $output = trim($process->getOutput()."\n".$process->getErrorOutput());
-                    $output = trim($output);
-
-                    if (mb_strlen($output) > 2000) {
-                        $output = mb_substr($output, 0, 2000)."\n…(output truncated)";
-                    }
-
-                    if ($process->isSuccessful()) {
-                        Notification::make()
-                            ->title('Synchronizacja zakończona')
-                            ->body($output ?: 'Brak danych wyjściowych.')
-                            ->success()
-                            ->persistent()
-                            ->send();
-                    } else {
-                        Notification::make()
-                            ->title('Synchronizacja nie powiodła się (kod: '.$process->getExitCode().')')
-                            ->body($output ?: 'Brak danych wyjściowych.')
-                            ->danger()
-                            ->persistent()
-                            ->send();
-                    }
-                }),
+            Action::make('resolve_bets')
+                ->label('Rozlicz typy')
+                ->icon('heroicon-o-check-badge')
+                ->color('success')
+                ->requiresConfirmation()
+                ->modalHeading('Rozliczenie typów')
+                ->modalDescription('Uruchomi komendę mundial:resolve-bets.')
+                ->modalSubmitActionLabel('Uruchom')
+                ->action(fn () => $this->runCommand(['php84-cli', 'artisan', 'mundial:resolve-bets'], 'Rozliczenie typów')),
         ];
     }
 }

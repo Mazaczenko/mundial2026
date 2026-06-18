@@ -456,15 +456,17 @@ const emptyMessage = computed(() => {
                                         <div
                                             v-for="opt in ['1', 'X', '2']"
                                             :key="opt"
-                                            class="flex items-center justify-center gap-1 py-1.5 transition-all"
+                                            class="flex items-center justify-center gap-1 overflow-hidden py-1.5 transition-all"
                                             :class="{
                                                 'bg-indigo-600 text-white': match.my_bet?.prediction_1x2 === opt,
                                                 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300': match.my_bet?.prediction_1x2 !== opt,
                                             }"
-                                            :style="{ width: match.bet_stats[opt as '1'|'X'|'2'] + '%', minWidth: match.bet_stats[opt as '1'|'X'|'2'] > 0 ? '2rem' : '0' }"
+                                            :style="{ width: match.bet_stats[opt as '1'|'X'|'2'] + '%' }"
                                         >
-                                            <span>{{ opt }}</span>
-                                            <span class="opacity-75">{{ match.bet_stats[opt as '1'|'X'|'2'] }}%</span>
+                                            <template v-if="match.bet_stats[opt as '1'|'X'|'2'] >= 8">
+                                                <span>{{ opt }}</span>
+                                                <span v-if="match.bet_stats[opt as '1'|'X'|'2'] >= 15" class="opacity-75">{{ match.bet_stats[opt as '1'|'X'|'2'] }}%</span>
+                                            </template>
                                         </div>
                                     </div>
                                     <div class="mt-1 text-right text-xs text-gray-400 dark:text-gray-500">

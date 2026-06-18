@@ -2,7 +2,7 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import { Head, useForm, router } from '@inertiajs/vue3';
 import { ref, computed, onMounted, onUnmounted } from 'vue';
-import type { MatchData } from '@/types';
+import type { MatchData, OtherBet } from '@/types';
 
 interface Props {
     matchesByDate: Record<string, MatchData[]>;
@@ -137,6 +137,22 @@ function clearFilters() {
     betFilter.value    = '';
     resultFilter.value = '';
     router.get(route('bets.index'), { tab: props.tab }, { preserveScroll: false });
+}
+
+function betPillClass(bet: OtherBet): string {
+    if (bet.is_correct === true) return 'bg-green-50 border-green-200 dark:bg-green-900/20 dark:border-green-800';
+    if (bet.is_correct === false) return 'bg-red-50 border-red-200 dark:bg-red-900/20 dark:border-red-800';
+    return 'bg-gray-50 border-gray-200 dark:bg-gray-800 dark:border-gray-700';
+}
+
+function betTextClass(bet: OtherBet): string {
+    if (bet.is_correct === true) return 'text-green-700 dark:text-green-400';
+    if (bet.is_correct === false) return 'text-red-600 dark:text-red-400';
+    return 'text-gray-500 dark:text-gray-400';
+}
+
+function truncateName(name: string, max = 12): string {
+    return name.length > max ? name.slice(0, max) + '…' : name;
 }
 
 // Empty state message
@@ -458,14 +474,23 @@ const emptyMessage = computed(() => {
 
                                 <!-- Others' bets (after deadline) -->
                                 <div v-if="match.others_bets.length > 0" class="mt-2">
-                                    <div class="flex flex-wrap gap-2">
-                                        <span
+                                    <div class="grid grid-cols-2 gap-1.5 sm:grid-cols-3 lg:grid-cols-4">
+                                        <div
                                             v-for="ob in match.others_bets"
                                             :key="ob.participant_name"
-                                            class="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2.5 py-0.5 text-xs text-gray-700 dark:bg-gray-700 dark:text-gray-300"
+                                            class="flex items-center justify-between rounded border px-2 py-1 text-xs"
+                                            :class="[betPillClass(ob), ob.eliminated ? 'opacity-50' : '']"
                                         >
-                                            {{ ob.participant_name }}: <strong>{{ ob.prediction_1x2 }}</strong>
-                                        </span>
+                                            <span class="truncate text-gray-700 dark:text-gray-300" :title="ob.participant_name">
+                                                {{ truncateName(ob.participant_name) }}
+                                            </span>
+                                            <span class="ml-1.5 shrink-0 font-bold tabular-nums" :class="betTextClass(ob)">
+                                                {{ ob.prediction_1x2 }}
+                                                <template v-if="ob.predicted_home !== null && ob.predicted_away !== null">
+                                                    <span class="font-normal opacity-70"> {{ ob.predicted_home }}:{{ ob.predicted_away }}</span>
+                                                </template>
+                                            </span>
+                                        </div>
                                     </div>
                                 </div>
                             </div>

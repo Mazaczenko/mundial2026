@@ -55,7 +55,7 @@ class BetController extends Controller
         // Base query for the selected tab
         $query = WorldMatch::query()
             ->with([
-                'bets' => fn ($q) => $q->with('participant:id,name'),
+                'bets' => fn ($q) => $q->with('participant:id,name,eliminated'),
                 'goals' => fn ($q) => $q->orderByRaw('CAST(minute AS UNSIGNED)'),
             ]);
 
@@ -100,7 +100,11 @@ class BetController extends Controller
                     ->where('participant_id', '!=', $user->id)
                     ->map(fn ($b) => [
                         'participant_name' => $b->participant->name,
+                        'eliminated' => (bool) $b->participant->eliminated,
                         'prediction_1x2' => $b->prediction_1x2,
+                        'predicted_home' => $b->predicted_home,
+                        'predicted_away' => $b->predicted_away,
+                        'is_correct' => $b->is_correct,
                     ])
                     ->values()
                 : collect();

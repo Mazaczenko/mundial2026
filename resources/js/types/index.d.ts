@@ -18,7 +18,11 @@ export interface Bet {
 
 export interface OtherBet {
     participant_name: string;
+    eliminated: boolean;
     prediction_1x2: '1' | 'X' | '2';
+    predicted_home: number | null;
+    predicted_away: number | null;
+    is_correct: boolean | null;
 }
 
 export interface MatchData {

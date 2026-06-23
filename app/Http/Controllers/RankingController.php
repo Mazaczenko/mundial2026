@@ -8,6 +8,7 @@ use App\Models\WorldMatch;
 use App\Services\BadgeService;
 use App\Services\RankingService;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Cache;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -20,16 +21,30 @@ class RankingController extends Controller
 
     public function index(): Response
     {
-        $ranking = $this->rankingService->getRanking();
-        $ranking = $this->enrichWithPositionChange($ranking);
-        $ranking = $this->enrichWithBadges($ranking);
+        $data = Cache::remember('ranking.page.data', now()->addMinutes(2), function () {
+            $finishedMatches = WorldMatch::finished()
+                ->orderBy('kickoff_at')
+                ->get(['id', 'home_team', 'away_team', 'stage', 'score_home', 'score_away', 'kickoff_at']);
 
-        return Inertia::render('Ranking/Index', [
-            'ranking' => $ranking,
-            'chartData' => $this->buildChartData(),
-            'playedMatchesCount' => WorldMatch::finished()->count(),
-            'bettingStats' => $this->buildBettingStats(),
-        ]);
+            $finishedMatchIds = $finishedMatches->pluck('id')->all();
+
+            $participants = Participant::with([
+                'bets' => fn ($q) => $q->whereIn('match_id', $finishedMatchIds),
+            ])->orderBy('name')->get();
+
+            $ranking = $this->rankingService->getRanking();
+            $ranking = $this->enrichWithPositionChange($ranking);
+            $ranking = $this->enrichWithBadges($ranking, $participants, $finishedMatches);
+
+            return [
+                'ranking' => $ranking,
+                'chartData' => $this->buildChartData($participants, $finishedMatches),
+                'playedMatchesCount' => $finishedMatches->count(),
+                'bettingStats' => $this->buildBettingStats($participants, $finishedMatches),
+            ];
+        });
+
+        return Inertia::render('Ranking/Index', $data);
     }
 
     private function enrichWithPositionChange(Collection $ranking): Collection
@@ -70,18 +85,12 @@ class RankingController extends Controller
         });
     }
 
-    private function enrichWithBadges(Collection $ranking): Collection
+    private function enrichWithBadges(Collection $ranking, Collection $participants, Collection $finishedMatches): Collection
     {
-        $finishedMatches = WorldMatch::finished()
-            ->orderBy('kickoff_at')
-            ->get(['id', 'stage', 'score_home', 'score_away', 'kickoff_at']);
+        $participantsByKey = $participants->keyBy('id');
 
-        $participants = Participant::with([
-            'bets' => fn ($q) => $q->whereIn('match_id', $finishedMatches->pluck('id')),
-        ])->get()->keyBy('id');
-
-        return $ranking->map(function (array $entry) use ($participants, $finishedMatches) {
-            $participant = $participants->get($entry['id']);
+        return $ranking->map(function (array $entry) use ($participantsByKey, $finishedMatches) {
+            $participant = $participantsByKey->get($entry['id']);
             if (! $participant) {
                 return array_merge($entry, ['badges' => []]);
             }
@@ -95,24 +104,15 @@ class RankingController extends Controller
     }
 
     /** @return list<array<string, mixed>> */
-    private function buildBettingStats(): array
+    private function buildBettingStats(Collection $participants, Collection $finishedMatches): array
     {
-        $finishedMatches = WorldMatch::finished()
-            ->orderBy('kickoff_at')
-            ->get(['id', 'stage', 'score_home', 'score_away', 'kickoff_at']);
-
         $finishedIds = $finishedMatches->pluck('id')->all();
         $totalFinished = count($finishedIds);
 
-        /** @var Collection<int, Model> $finishedMap */
+        /** @var Collection<int, WorldMatch> $finishedMap */
         $finishedMap = $finishedMatches->keyBy('id');
 
         $knockoutStages = ['r32', 'r16', 'qf', 'sf', 'final'];
-
-        $participants = Participant::with([
-            'bets' => fn ($q) => $q->whereIn('match_id', $finishedIds)
-                ->orderBy('match_id'),
-        ])->orderBy('name')->get();
 
         $stats = [];
 
@@ -215,25 +215,15 @@ class RankingController extends Controller
         return $stats;
     }
 
-    private function buildChartData(): array
+    private function buildChartData(Collection $participants, Collection $finishedMatches): array
     {
-        $matches = WorldMatch::finished()
-            ->orderBy('kickoff_at')
-            ->get(['id', 'home_team', 'away_team', 'score_home', 'score_away']);
-
-        if ($matches->isEmpty()) {
+        if ($finishedMatches->isEmpty()) {
             return [];
         }
 
-        $matchIds = $matches->pluck('id')->all();
-
-        $matchScores = $matches->keyBy('id');
-
-        $participants = Participant::with([
-            'bets' => fn ($q) => $q->whereIn('match_id', $matchIds),
-        ])->orderBy('name')->get(['id', 'name', 'eliminated']);
-
-        $labels = $matches->map(fn ($m) => $m->home_team.' – '.$m->away_team)->values();
+        $matchIds = $finishedMatches->pluck('id')->all();
+        $matchScores = $finishedMatches->keyBy('id');
+        $labels = $finishedMatches->map(fn ($m) => $m->home_team.' – '.$m->away_team)->values();
 
         $datasets = $participants->map(function (Participant $participant) use ($matchIds, $matchScores) {
             $betsByMatch = $participant->bets->keyBy('match_id');

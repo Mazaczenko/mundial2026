@@ -8,6 +8,8 @@ use Illuminate\Support\Collection;
 
 class BadgeService
 {
+    private ?array $allBetsPerMatchCache = null;
+
     public function getBadges(Participant $participant, Collection $finishedMatches): array
     {
         $finishedIds = $finishedMatches->pluck('id')->all();
@@ -217,6 +219,10 @@ class BadgeService
 
     private function loadAllBetsPerMatch(Collection $finishedMatches): array
     {
+        if ($this->allBetsPerMatchCache !== null) {
+            return $this->allBetsPerMatchCache;
+        }
+
         $matchIds = $finishedMatches->pluck('id')->all();
 
         $allBets = Bet::whereIn('match_id', $matchIds)
@@ -228,6 +234,6 @@ class BadgeService
             $grouped[$bet->match_id][] = $bet;
         }
 
-        return array_map(fn ($items) => collect($items), $grouped);
+        return $this->allBetsPerMatchCache = array_map(fn ($items) => collect($items), $grouped);
     }
 }

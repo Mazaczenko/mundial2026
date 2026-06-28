@@ -47,6 +47,8 @@ class RankingService
                 fn ($b) => $b->match?->kickoff_at?->lte($now->copy()->subHour())
             )->count();
 
+            $finishedBetsCount = $finishedBets->count();
+
             return [
                 'id' => $participant->id,
                 'name' => $participant->name,
@@ -59,11 +61,24 @@ class RankingService
                 'eliminated' => $participant->eliminated,
                 'bets_count' => $allBets->count(),
                 'missed_count' => $pastMatchCount - $pastBetsCount,
+                'correct_bets' => $correctFinished->count(),
+                'finished_bets' => $finishedBetsCount,
             ];
         });
 
         $sortFn = function ($a, $b) {
-            foreach (['points', 'bets_count', 'exact_scores', 'group_correct'] as $key) {
+            if ($b['points'] !== $a['points']) {
+                return $b['points'] <=> $a['points'];
+            }
+
+            // trafność: correct/finished — porównaj krzyżowo żeby uniknąć float
+            $aAcc = $a['correct_bets'] * max($b['finished_bets'], 1);
+            $bAcc = $b['correct_bets'] * max($a['finished_bets'], 1);
+            if ($bAcc !== $aAcc) {
+                return $bAcc <=> $aAcc;
+            }
+
+            foreach (['exact_scores', 'group_correct', 'bets_count'] as $key) {
                 if ($b[$key] !== $a[$key]) {
                     return $b[$key] <=> $a[$key];
                 }

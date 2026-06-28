@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import { Head } from '@inertiajs/vue3';
-import { computed, ref } from 'vue';
+import { computed, onMounted, onUnmounted, ref } from 'vue';
 
 interface MyBet {
     prediction_1x2: '1' | 'X' | '2'
@@ -67,6 +67,31 @@ const CARD_HEIGHT = 72;
 const maxMatchCount = computed(() => 16);
 const columnHeight = computed(() => `${maxMatchCount.value * CARD_HEIGHT}px`);
 
+const now = ref(new Date());
+let countdownTimer: ReturnType<typeof setInterval> | null = null;
+onMounted(() => { countdownTimer = setInterval(() => { now.value = new Date(); }, 1000); });
+onUnmounted(() => { if (countdownTimer) clearInterval(countdownTimer); });
+
+const allKnockoutMatches = computed(() =>
+    STAGE_ORDER.flatMap(s => props.matchesByStage[s] ?? [])
+);
+
+const nextMatch = computed(() => {
+    const scheduled = allKnockoutMatches.value.filter(m => m.status === 'scheduled');
+    return scheduled.sort((a, b) => new Date(a.kickoff_at).getTime() - new Date(b.kickoff_at).getTime())[0] ?? null;
+});
+
+const myBetStats = computed(() => {
+    const all = allKnockoutMatches.value;
+    const placed = all.filter(m => m.my_bet !== null).length;
+    const total = all.length;
+    const finished = all.filter(m => m.status === 'finished');
+    const correct = finished.filter(m => m.my_bet?.is_correct === true).length;
+    const finishedWithBet = finished.filter(m => m.my_bet !== null).length;
+    const hasUnbet = all.some(m => m.status === 'scheduled' && m.my_bet === null);
+    return { placed, total, correct, finishedWithBet, hasUnbet };
+});
+
 function getPaddedMatches(stage: string): (KnockoutMatch | null)[] {
     const real = props.matchesByStage[stage] ?? [];
     const needed = STAGE_MATCH_COUNTS[stage] ?? 0;
@@ -96,6 +121,17 @@ function formatKickoff(kickoffAt: string): string {
     const d = date.toLocaleDateString('pl-PL', { day: 'numeric', month: 'short' });
     const t = date.toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' });
     return `${d}, ${t}`;
+}
+
+function formatCountdown(kickoffAt: string): string {
+    const diff = new Date(kickoffAt).getTime() - now.value.getTime();
+    if (diff <= 0) return 'Zaraz';
+    const h = Math.floor(diff / 3600000);
+    const m = Math.floor((diff % 3600000) / 60000);
+    const s = Math.floor((diff % 60000) / 1000);
+    if (h > 0) return `za ${h}h ${m}m`;
+    if (m > 0) return `za ${m}m ${s}s`;
+    return `za ${s}s`;
 }
 
 function pointsEarned(match: KnockoutMatch): number | null {
@@ -172,6 +208,20 @@ function connectorPaths(leftStage: string, rightStage: string): string[] {
                     </div>
                 </div>
 
+                <div v-if="hasMatches" class="mb-4 flex flex-wrap items-center gap-4 rounded-lg border border-indigo-100 bg-indigo-50 px-4 py-3 dark:border-indigo-900/40 dark:bg-indigo-900/20">
+                    <div class="flex items-center gap-1.5 text-sm">
+                        <span class="font-semibold text-indigo-700 dark:text-indigo-300">{{ myBetStats.placed }}/{{ myBetStats.total }}</span>
+                        <span class="text-indigo-500 dark:text-indigo-400">obstawionych</span>
+                    </div>
+                    <div v-if="myBetStats.finishedWithBet > 0" class="flex items-center gap-1.5 text-sm">
+                        <span class="font-semibold text-green-700 dark:text-green-400">{{ myBetStats.correct }}/{{ myBetStats.finishedWithBet }}</span>
+                        <span class="text-gray-500 dark:text-gray-400">trafnych</span>
+                    </div>
+                    <a v-if="myBetStats.hasUnbet" href="/bets?tab=upcoming&bet=missing" class="ml-auto text-xs font-medium text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-200">
+                        Obstaw brakujące →
+                    </a>
+                </div>
+
                 <div v-if="!hasMatches" class="rounded-lg bg-white p-8 text-center text-gray-500 shadow dark:bg-gray-800">
                     Faza pucharowa jeszcze się nie rozpoczęła.
                 </div>
@@ -238,7 +288,12 @@ function connectorPaths(leftStage: string, rightStage: string): string[] {
                                                     <span v-else-if="match.status === 'finished'" class="text-gray-400">
                                                         {{ match.result_type ?? 'FT' }}
                                                     </span>
-                                                    <span v-else class="text-gray-400">{{ formatKickoff(match.kickoff_at) }}</span>
+                                                    <span v-else class="text-gray-400">
+                                                        <span v-if="nextMatch && match.id === nextMatch.id" class="font-medium text-indigo-500 dark:text-indigo-400">
+                                                            {{ formatCountdown(match.kickoff_at) }}
+                                                        </span>
+                                                        <span v-else>{{ formatKickoff(match.kickoff_at) }}</span>
+                                                    </span>
                                                 </span>
                                             </div>
 
@@ -263,6 +318,7 @@ function connectorPaths(leftStage: string, rightStage: string): string[] {
                                                     class="text-xs font-bold"
                                                     :class="isWinner(match, 'home') ? 'text-green-700 dark:text-green-400' : 'text-gray-800 dark:text-gray-200'"
                                                 >{{ match.score_home }}</span>
+                                                <span v-if="isWinner(match, 'home')" class="text-[10px] font-bold text-green-600 dark:text-green-400">›</span>
                                             </div>
 
                                             <!-- Divider -->
@@ -289,10 +345,11 @@ function connectorPaths(leftStage: string, rightStage: string): string[] {
                                                     class="text-xs font-bold"
                                                     :class="isWinner(match, 'away') ? 'text-green-700 dark:text-green-400' : 'text-gray-800 dark:text-gray-200'"
                                                 >{{ match.score_away }}</span>
+                                                <span v-if="isWinner(match, 'away')" class="text-[10px] font-bold text-green-600 dark:text-green-400">›</span>
                                             </div>
 
                                             <!-- Bet stats bar -->
-                                            <div v-if="match.bet_stats && match.bet_stats.total > 0" class="flex h-3 overflow-hidden rounded-b">
+                                            <div v-if="match.bet_stats && match.bet_stats.total > 0" class="flex h-5 overflow-hidden rounded-b">
                                                 <div
                                                     v-for="(key, kIdx) in (['1', 'X', '2'] as const)"
                                                     :key="key"
@@ -302,12 +359,12 @@ function connectorPaths(leftStage: string, rightStage: string): string[] {
                                                         match.my_bet?.prediction_1x2 === key ? 'ring-1 ring-inset ring-white/60' : '',
                                                     ]"
                                                     :style="{ width: pct(match.bet_stats, key) + '%' }"
-                                                    :title="`${key}: ${pct(match.bet_stats, key)}%`"
+                                                    :title="`${key === '1' ? match.home_team : key === '2' ? match.away_team : 'Remis'}: ${pct(match.bet_stats, key)}% (${match.bet_stats[key]} typy)`"
                                                 >
-                                                    <span v-if="pct(match.bet_stats, key) >= 20">{{ pct(match.bet_stats, key) }}%</span>
+                                                    <span v-if="pct(match.bet_stats, key) >= 15">{{ pct(match.bet_stats, key) }}%</span>
                                                 </div>
                                             </div>
-                                            <div v-else class="h-3 rounded-b bg-gray-50 dark:bg-gray-700/30" />
+                                            <div v-else class="h-5 rounded-b bg-gray-50 dark:bg-gray-700/30" />
                                         </div>
                                     </div>
                                 </div>

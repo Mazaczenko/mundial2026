@@ -134,7 +134,7 @@ const chartDataset = computed(() => {
     };
 });
 
-const showChart = ref(true);
+const showChart = ref(false);
 
 type SortCol = 'rank' | 'name' | 'points' | 'bets_count' | 'missed_count';
 type SortDir = 'asc' | 'desc';

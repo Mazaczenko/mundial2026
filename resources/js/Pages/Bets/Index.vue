@@ -58,6 +58,10 @@ const hasLive = computed(() =>
     allMatches.value.some(m => m.status === 'in_play')
 );
 
+const hasKnockoutMatches = computed(() =>
+    Object.values(props.matchesByDate).flat().some(m => m.stage !== 'group')
+);
+
 let liveInterval: ReturnType<typeof setInterval> | null = null;
 
 onMounted(() => {
@@ -269,6 +273,15 @@ const emptyMessage = computed(() => {
                     </button>
                 </div>
 
+                <!-- Knockout phase banner -->
+                <div v-if="hasKnockoutMatches" class="mb-6 flex items-center gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 dark:border-amber-800/50 dark:bg-amber-900/20">
+                    <span class="shrink-0 text-lg text-amber-500">&#9917;</span>
+                    <div>
+                        <p class="text-sm font-semibold text-amber-800 dark:text-amber-300">Faza pucharowa!</p>
+                        <p class="text-xs text-amber-700 dark:text-amber-400">Typuj mecze 1/32 finału — pamiętaj o dokładnym wyniku!</p>
+                    </div>
+                </div>
+
                 <!-- Match list -->
                 <div v-for="(matches, date) in matchesByDate" :key="date" class="mb-8">
                     <h2 class="mb-3 text-lg font-semibold capitalize text-gray-700 dark:text-gray-300">
@@ -280,11 +293,15 @@ const emptyMessage = computed(() => {
                             v-for="match in matches"
                             :key="match.id"
                             class="overflow-hidden rounded-lg bg-white shadow dark:bg-gray-800"
+                            :class="isKnockout(match.stage) ? 'border-l-4 border-amber-400 dark:border-amber-500' : ''"
                         >
                             <!-- Match header -->
                             <div class="p-4">
                                 <div class="flex items-center justify-between">
-                                    <span class="text-xs font-medium uppercase tracking-wide text-gray-400 dark:text-gray-500">
+                                    <span
+                                        class="text-xs font-medium uppercase tracking-wide"
+                                        :class="isKnockout(match.stage) ? 'text-amber-600 dark:text-amber-400' : 'text-gray-400 dark:text-gray-500'"
+                                    >
                                         {{ stageLabels[match.stage] }}
                                         <span v-if="match.group_name"> · Gr. {{ match.group_name }}</span>
                                     </span>
@@ -426,7 +443,7 @@ const emptyMessage = computed(() => {
                                             class="w-14 rounded border border-gray-300 px-2 py-1 text-center text-sm focus:border-indigo-500 focus:outline-none dark:border-gray-600 dark:bg-gray-800 dark:text-white"
                                             placeholder="–"
                                         />
-                                        <span class="text-xs text-gray-400">(tiebreaker)</span>
+                                        <span class="text-xs text-gray-400">na koniec drugiej połowy</span>
                                     </div>
 
                                     <div class="mt-3">

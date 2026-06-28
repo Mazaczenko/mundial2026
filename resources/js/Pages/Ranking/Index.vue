@@ -328,6 +328,33 @@ function badgeEmoji(key: string): string {
     return BADGE_EMOJIS[key] ?? '🏅';
 }
 
+const globalStats = computed(() => {
+    const actStats = props.bettingStats.filter(s => !s.eliminated);
+    const withAccuracy = actStats.filter(s => s.accuracy_pct !== null);
+    return {
+        totalBets: actStats.reduce((s, r) => s + r.bets_placed, 0),
+        avgAccuracy: withAccuracy.length
+            ? Math.round(withAccuracy.reduce((s, r) => s + (r.accuracy_pct ?? 0), 0) / withAccuracy.length * 10) / 10
+            : null,
+        totalExact: actStats.reduce((s, r) => s + r.exact_scores, 0),
+        totalCorrect: actStats.reduce((s, r) => s + r.correct_1x2, 0),
+    };
+});
+
+const hasKnockoutData = computed(() =>
+    props.bettingStats.some(s => s.knockout_bets > 0)
+);
+
+const knockoutRanking = computed(() => {
+    return [...props.bettingStats]
+        .filter(s => !s.eliminated)
+        .map(s => ({
+            ...s,
+            knockout_points: s.knockout_correct + s.exact_scores,
+        }))
+        .sort((a, b) => b.knockout_points - a.knockout_points || b.knockout_correct - a.knockout_correct);
+});
+
 </script>
 
 <template>
@@ -352,6 +379,88 @@ function badgeEmoji(key: string): string {
                         <div class="relative h-72">
                             <Line :data="chartDataset" :options="chartOptions" />
                         </div>
+                    </div>
+                </div>
+
+                <!-- Podium TOP 3 -->
+                <div v-if="active.length >= 3" class="mb-6">
+                    <div class="flex items-end justify-center gap-3">
+                        <!-- 2. miejsce -->
+                        <div class="mt-6 flex w-1/3 flex-col items-center">
+                            <div class="w-full rounded-xl border-2 border-gray-300 bg-white p-4 text-center shadow dark:bg-gray-800">
+                                <div class="mb-1 text-3xl">🥈</div>
+                                <Link
+                                    :href="route('participants.show', active[1].id)"
+                                    class="block truncate text-sm font-semibold text-gray-800 hover:text-indigo-600 dark:text-white dark:hover:text-indigo-400"
+                                >{{ active[1].name }}</Link>
+                                <div class="mt-1 text-lg font-bold text-gray-700 dark:text-gray-200">{{ active[1].points }} pkt</div>
+                                <div class="mt-1 flex items-center justify-center gap-1 text-xs">
+                                    <span v-if="active[1].position_change !== null && active[1].position_change > 0" class="text-green-600 dark:text-green-400">▲{{ active[1].position_change }}</span>
+                                    <span v-else-if="active[1].position_change !== null && active[1].position_change < 0" class="text-red-500 dark:text-red-400">▼{{ Math.abs(active[1].position_change) }}</span>
+                                    <span v-else-if="active[1].position_change === 0" class="text-gray-400 dark:text-gray-600">—</span>
+                                </div>
+                            </div>
+                            <div class="mt-2 h-8 w-full rounded-b-sm bg-gray-300 dark:bg-gray-600"></div>
+                        </div>
+
+                        <!-- 1. miejsce -->
+                        <div class="-mt-6 flex w-1/3 flex-col items-center">
+                            <div class="w-full rounded-xl border-2 border-yellow-400 bg-yellow-50 p-4 text-center shadow-lg dark:bg-yellow-900/20">
+                                <div class="mb-1 text-3xl">🥇</div>
+                                <Link
+                                    :href="route('participants.show', active[0].id)"
+                                    class="block truncate text-sm font-semibold text-gray-800 hover:text-indigo-600 dark:text-white dark:hover:text-indigo-400"
+                                >{{ active[0].name }}</Link>
+                                <div class="mt-1 text-lg font-bold text-yellow-700 dark:text-yellow-300">{{ active[0].points }} pkt</div>
+                                <div class="mt-1 flex items-center justify-center gap-1 text-xs">
+                                    <span v-if="active[0].position_change !== null && active[0].position_change > 0" class="text-green-600 dark:text-green-400">▲{{ active[0].position_change }}</span>
+                                    <span v-else-if="active[0].position_change !== null && active[0].position_change < 0" class="text-red-500 dark:text-red-400">▼{{ Math.abs(active[0].position_change) }}</span>
+                                    <span v-else-if="active[0].position_change === 0" class="text-gray-400 dark:text-gray-600">—</span>
+                                </div>
+                            </div>
+                            <div class="mt-2 h-12 w-full rounded-b-sm bg-yellow-400 dark:bg-yellow-500"></div>
+                        </div>
+
+                        <!-- 3. miejsce -->
+                        <div class="mt-6 flex w-1/3 flex-col items-center">
+                            <div class="w-full rounded-xl border-2 border-amber-600/40 bg-white p-4 text-center shadow dark:bg-gray-800">
+                                <div class="mb-1 text-3xl">🥉</div>
+                                <Link
+                                    :href="route('participants.show', active[2].id)"
+                                    class="block truncate text-sm font-semibold text-gray-800 hover:text-indigo-600 dark:text-white dark:hover:text-indigo-400"
+                                >{{ active[2].name }}</Link>
+                                <div class="mt-1 text-lg font-bold text-amber-700 dark:text-amber-400">{{ active[2].points }} pkt</div>
+                                <div class="mt-1 flex items-center justify-center gap-1 text-xs">
+                                    <span v-if="active[2].position_change !== null && active[2].position_change > 0" class="text-green-600 dark:text-green-400">▲{{ active[2].position_change }}</span>
+                                    <span v-else-if="active[2].position_change !== null && active[2].position_change < 0" class="text-red-500 dark:text-red-400">▼{{ Math.abs(active[2].position_change) }}</span>
+                                    <span v-else-if="active[2].position_change === 0" class="text-gray-400 dark:text-gray-600">—</span>
+                                </div>
+                            </div>
+                            <div class="mt-2 h-6 w-full rounded-b-sm bg-amber-600/60 dark:bg-amber-700"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Global stats -->
+                <div v-if="bettingStats.length > 0" class="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+                    <div class="rounded-lg bg-white p-4 shadow dark:bg-gray-800">
+                        <div class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Łączne typy</div>
+                        <div class="mt-1 text-2xl font-bold text-indigo-600 dark:text-indigo-400">{{ globalStats.totalBets }}</div>
+                    </div>
+                    <div class="rounded-lg bg-white p-4 shadow dark:bg-gray-800">
+                        <div class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Śr. trafność</div>
+                        <div
+                            class="mt-1 text-2xl font-bold"
+                            :class="globalStats.avgAccuracy === null ? 'text-gray-400' : globalStats.avgAccuracy >= 50 ? 'text-green-600 dark:text-green-400' : 'text-orange-500 dark:text-orange-400'"
+                        >{{ globalStats.avgAccuracy !== null ? globalStats.avgAccuracy + '%' : '—' }}</div>
+                    </div>
+                    <div class="rounded-lg bg-white p-4 shadow dark:bg-gray-800">
+                        <div class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Trafione</div>
+                        <div class="mt-1 text-2xl font-bold text-gray-700 dark:text-gray-200">{{ globalStats.totalCorrect }}</div>
+                    </div>
+                    <div class="rounded-lg bg-white p-4 shadow dark:bg-gray-800">
+                        <div class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Dokładne wyniki</div>
+                        <div class="mt-1 text-2xl font-bold text-emerald-600 dark:text-emerald-400">{{ globalStats.totalExact }}</div>
                     </div>
                 </div>
 
@@ -421,7 +530,9 @@ function badgeEmoji(key: string): string {
                             <tr
                                 v-for="entry in paginated"
                                 :key="entry.id"
-                                class="hover:bg-gray-50 dark:hover:bg-gray-700/50"
+                                :class="entry.name === currentUserName
+                                    ? 'bg-indigo-50 dark:bg-indigo-900/10 hover:bg-indigo-100 dark:hover:bg-indigo-900/20'
+                                    : 'hover:bg-gray-50 dark:hover:bg-gray-700/50'"
                             >
                                 <td class="px-4 py-3 text-sm font-medium text-gray-500">
                                     <div class="flex items-center gap-1">
@@ -784,6 +895,84 @@ function badgeEmoji(key: string): string {
                                 class="rounded px-3 py-1.5 font-medium transition-colors disabled:opacity-40"
                                 :class="statPage < statTotalPages ? 'hover:bg-gray-100 dark:hover:bg-gray-700' : ''"
                             >Następna →</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Knockout Ranking -->
+                <div v-if="hasKnockoutData" class="mt-10">
+                    <h2 class="mb-4 text-xl font-bold text-gray-800 dark:text-gray-100">Ranking fazy pucharowej</h2>
+
+                    <!-- Desktop table -->
+                    <div class="hidden overflow-hidden rounded-lg bg-white shadow dark:bg-gray-800 sm:block">
+                        <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                            <thead class="bg-gray-50 dark:bg-gray-900">
+                                <tr>
+                                    <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Uczestnik</th>
+                                    <th class="px-4 py-3 text-center text-xs font-medium uppercase tracking-wide text-gray-500">Pkt puchar</th>
+                                    <th class="px-4 py-3 text-center text-xs font-medium uppercase tracking-wide text-gray-500">Trafione (1x2)</th>
+                                    <th class="px-4 py-3 text-center text-xs font-medium uppercase tracking-wide text-gray-500">Dokładne wyniki</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
+                                <tr
+                                    v-for="row in knockoutRanking"
+                                    :key="row.id"
+                                    :class="row.name === currentUserName
+                                        ? 'bg-indigo-50 dark:bg-indigo-900/10 hover:bg-indigo-100 dark:hover:bg-indigo-900/20'
+                                        : 'hover:bg-gray-50 dark:hover:bg-gray-700/50'"
+                                >
+                                    <td class="px-4 py-3 text-sm font-medium text-gray-900 dark:text-white">{{ row.name }}</td>
+                                    <td class="px-4 py-3 text-center">
+                                        <span class="inline-flex items-center rounded-full bg-indigo-100 px-2.5 py-0.5 text-sm font-semibold text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300">
+                                            {{ row.knockout_points }}
+                                        </span>
+                                    </td>
+                                    <td class="px-4 py-3 text-center text-sm text-gray-600 dark:text-gray-300">
+                                        {{ row.knockout_correct }}/{{ row.knockout_bets }}
+                                    </td>
+                                    <td class="px-4 py-3 text-center text-sm text-gray-600 dark:text-gray-300">
+                                        <span v-if="row.exact_scores > 0" class="inline-flex items-center gap-1">
+                                            <span>⚽</span>
+                                            <span class="font-medium">{{ row.exact_scores }}</span>
+                                        </span>
+                                        <span v-else class="text-gray-300 dark:text-gray-600">—</span>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Mobile cards -->
+                    <div class="space-y-3 sm:hidden">
+                        <div
+                            v-for="(row, index) in knockoutRanking"
+                            :key="row.id"
+                            class="rounded-lg bg-white p-4 shadow dark:bg-gray-800"
+                            :class="row.name === currentUserName ? 'ring-2 ring-indigo-400 dark:ring-indigo-500' : ''"
+                        >
+                            <div class="mb-2 flex items-center justify-between">
+                                <div class="flex items-center gap-2">
+                                    <span class="text-sm font-semibold text-gray-400 dark:text-gray-500">{{ index + 1 }}.</span>
+                                    <span class="text-sm font-semibold text-gray-900 dark:text-white">{{ row.name }}</span>
+                                </div>
+                                <span class="inline-flex items-center rounded-full bg-indigo-100 px-2.5 py-0.5 text-sm font-bold text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300">
+                                    {{ row.knockout_points }} pkt
+                                </span>
+                            </div>
+                            <div class="grid grid-cols-2 gap-2 text-center text-xs">
+                                <div class="rounded bg-gray-50 px-2 py-1.5 dark:bg-gray-700/50">
+                                    <div class="font-semibold text-gray-700 dark:text-gray-200">{{ row.knockout_correct }}/{{ row.knockout_bets }}</div>
+                                    <div class="text-gray-400">Trafione (1x2)</div>
+                                </div>
+                                <div class="rounded bg-gray-50 px-2 py-1.5 dark:bg-gray-700/50">
+                                    <div class="font-semibold text-gray-700 dark:text-gray-200">
+                                        <span v-if="row.exact_scores > 0">⚽ {{ row.exact_scores }}</span>
+                                        <span v-else class="text-gray-300 dark:text-gray-600">—</span>
+                                    </div>
+                                    <div class="text-gray-400">Dokładne</div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>

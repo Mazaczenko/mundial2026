@@ -176,7 +176,7 @@ function connectorPaths(leftStage: string, rightStage: string): string[] {
                     Faza pucharowa jeszcze się nie rozpoczęła.
                 </div>
 
-                <div v-else class="overflow-x-auto pb-4">
+                <div v-else class="overflow-x-auto overflow-y-hidden pb-4">
                     <div class="flex items-start" :style="{ minWidth: `${stages.length * 216}px` }">
 
                         <template v-for="(stage, stageIdx) in stages" :key="stage">

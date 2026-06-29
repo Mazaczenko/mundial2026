@@ -472,7 +472,7 @@ const emptyMessage = computed(() => {
                                                     'text-gray-800 dark:text-gray-200': match.my_bet.is_correct === null,
                                                 }"
                                             >
-                                                {{ match.my_bet.prediction_1x2 }}
+                                                {{ optionLabel(match.my_bet.prediction_1x2, match) }}
                                                 <span v-if="match.my_bet.is_correct === true"> ✓</span>
                                                 <span v-else-if="match.my_bet.is_correct === false"> ✗</span>
                                             </span>

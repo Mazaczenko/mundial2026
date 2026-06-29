@@ -518,7 +518,7 @@ const emptyMessage = computed(() => {
                                                 {{ truncateName(ob.participant_name) }}
                                             </span>
                                             <span class="ml-1.5 shrink-0 font-bold tabular-nums" :class="betTextClass(ob)">
-                                                {{ ob.prediction_1x2 }}
+                                                {{ optionLabel(ob.prediction_1x2, match) }}
                                                 <template v-if="ob.predicted_home !== null && ob.predicted_away !== null">
                                                     <span class="font-normal opacity-70"> {{ ob.predicted_home }}:{{ ob.predicted_away }}</span>
                                                 </template>

@@ -17,19 +17,20 @@ class RecalculateResultsCommand extends Command
 
     public function handle(FootballApiService $api, BetService $betService, EliminationService $eliminationService): int
     {
-        $this->info('Pobieranie wyników wszystkich zakończonych meczów...');
+        $this->info('Pobieranie wyników zakończonych meczów fazy pucharowej...');
 
         $matches = WorldMatch::where('status', 'finished')
+            ->where('stage', '!=', 'group')
             ->orderBy('kickoff_at')
             ->get();
 
         if ($matches->isEmpty()) {
-            $this->warn('Brak zakończonych meczów.');
+            $this->warn('Brak zakończonych meczów fazy pucharowej.');
 
             return self::SUCCESS;
         }
 
-        $this->info("Znaleziono {$matches->count()} zakończonych meczów.");
+        $this->info("Znaleziono {$matches->count()} zakończonych meczów fazy pucharowej.");
 
         // Group by date to minimise API calls (one call per day)
         $byDate = $matches->groupBy(fn (WorldMatch $m) => $m->kickoff_at->format('Y-m-d'));

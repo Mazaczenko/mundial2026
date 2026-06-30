@@ -103,6 +103,19 @@ function isKnockout(stage: string): boolean {
     return stage !== 'group';
 }
 
+function scoreLabel(match: MatchData): { ft: string; et: string | null; pen: string | null } {
+    const ft = match.score_home !== null && match.score_away !== null
+        ? `${match.score_home}:${match.score_away}`
+        : '–:–';
+    const et = match.score_home_et !== null && match.score_away_et !== null
+        ? `${match.score_home_et}:${match.score_away_et}`
+        : null;
+    const pen = match.score_home_pen !== null && match.score_away_pen !== null
+        ? `${match.score_home_pen}:${match.score_away_pen}`
+        : null;
+    return { ft, et, pen };
+}
+
 // --- Tabs ---
 const tabs: Array<{ key: 'today' | 'upcoming' | 'past'; label: string }> = [
     { key: 'today',    label: 'Dzisiaj' },
@@ -327,10 +340,22 @@ const emptyMessage = computed(() => {
                                     <!-- Score / VS -->
                                     <div class="text-center">
                                         <template v-if="match.status === 'finished'">
-                                            <div class="text-2xl font-bold text-gray-900 dark:text-white">
-                                                {{ match.score_home }} : {{ match.score_away }}
+                                            <div class="text-2xl font-bold text-gray-900 dark:text-white tabular-nums">
+                                                {{ scoreLabel(match).ft }}
                                             </div>
-                                            <div class="mt-1 text-xs text-gray-500">Wynik końcowy</div>
+                                            <div class="mt-0.5 text-xs text-gray-400">90'</div>
+                                            <template v-if="match.result_type === 'AET' || match.result_type === 'PEN'">
+                                                <div class="mt-1 text-sm font-semibold tabular-nums text-indigo-600 dark:text-indigo-400">
+                                                    {{ scoreLabel(match).et ?? '–:–' }}
+                                                </div>
+                                                <div class="text-xs text-gray-400">dogrywka</div>
+                                            </template>
+                                            <template v-if="match.result_type === 'PEN'">
+                                                <div class="mt-1 text-sm font-semibold tabular-nums text-amber-600 dark:text-amber-400">
+                                                    {{ scoreLabel(match).pen ?? '–:–' }}
+                                                </div>
+                                                <div class="text-xs text-gray-400">karne</div>
+                                            </template>
                                         </template>
                                         <template v-else-if="match.status === 'in_play'">
                                             <div class="text-2xl font-bold text-red-600 dark:text-red-400">

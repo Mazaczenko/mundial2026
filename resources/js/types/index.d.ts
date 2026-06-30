@@ -37,6 +37,7 @@ export interface MatchData {
     status: 'scheduled' | 'in_play' | 'finished';
     score_home: number | null;
     score_away: number | null;
+    result_type: 'FT' | 'AET' | 'PEN' | null;
     score_home_et: number | null;
     score_away_et: number | null;
     score_home_pen: number | null;

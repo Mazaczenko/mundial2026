@@ -133,6 +133,11 @@ class BetController extends Controller
                 'status' => $match->status,
                 'score_home' => $match->score_home,
                 'score_away' => $match->score_away,
+                'result_type' => $match->result_type,
+                'score_home_et' => $match->score_home_et,
+                'score_away_et' => $match->score_away_et,
+                'score_home_pen' => $match->score_home_pen,
+                'score_away_pen' => $match->score_away_pen,
                 'can_bet' => $canBet,
                 'my_bet' => $myBet ? [
                     'id' => $myBet->id,

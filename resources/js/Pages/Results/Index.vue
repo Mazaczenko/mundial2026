@@ -63,6 +63,10 @@ interface MatchResult {
     group_name: string | null;
     score_home: number | null;
     score_away: number | null;
+    score_home_et: number | null;
+    score_away_et: number | null;
+    score_home_pen: number | null;
+    score_away_pen: number | null;
     result_type: 'FT' | 'AET' | 'PEN' | null;
     correct_bets: number;
     total_bets: number;
@@ -126,9 +130,15 @@ const stageBadgeClass: Record<string, string> = {
     final:  'bg-yellow-50 text-yellow-600 dark:bg-yellow-900/30 dark:text-yellow-400',
 };
 
-function resultTypeSuffix(type: string | null): string {
-    if (type === 'AET') return 'po dogryw.';
-    if (type === 'PEN') return 'po kar.';
+function scoreExtraSuffix(match: MatchResult): string {
+    if (match.result_type === 'AET' && match.score_home_et !== null && match.score_away_et !== null) {
+        return `(po dogryw. ${match.score_home_et}:${match.score_away_et})`;
+    }
+    if (match.result_type === 'PEN' && match.score_home_pen !== null && match.score_away_pen !== null) {
+        return `(karne ${match.score_home_pen}:${match.score_away_pen})`;
+    }
+    if (match.result_type === 'AET') return 'po dogryw.';
+    if (match.result_type === 'PEN') return 'po kar.';
     return '';
 }
 
@@ -468,8 +478,8 @@ function majorityTagClass(bet: MyBet): string {
                                         <span class="text-lg font-bold tabular-nums text-gray-900 dark:text-white">
                                             {{ match.score_home }}:{{ match.score_away }}
                                         </span>
-                                        <div v-if="resultTypeSuffix(match.result_type)" class="text-xs text-gray-400">
-                                            {{ resultTypeSuffix(match.result_type) }}
+                                        <div v-if="scoreExtraSuffix(match)" class="text-xs text-gray-400">
+                                            {{ scoreExtraSuffix(match) }}
                                         </div>
                                     </td>
 
@@ -724,7 +734,7 @@ function majorityTagClass(bet: MyBet): string {
                             </div>
                             <div class="mx-3 text-center">
                                 <div class="text-2xl font-bold tabular-nums text-gray-900 dark:text-white">{{ match.score_home }}:{{ match.score_away }}</div>
-                                <div v-if="resultTypeSuffix(match.result_type)" class="text-xs text-gray-400">{{ resultTypeSuffix(match.result_type) }}</div>
+                                <div v-if="scoreExtraSuffix(match)" class="text-xs text-gray-400">{{ scoreExtraSuffix(match) }}</div>
                             </div>
                             <div class="flex min-w-0 flex-1 flex-col items-center">
                                 <span v-if="match.away_team_flag && match.away_team_flag.length <= 4" class="text-2xl">{{ match.away_team_flag }}</span>

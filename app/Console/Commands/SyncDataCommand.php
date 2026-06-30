@@ -14,6 +14,7 @@ use App\Services\FootballApiService;
 use Illuminate\Console\Command;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Cache;
 
 class SyncDataCommand extends Command
 {
@@ -73,16 +74,17 @@ class SyncDataCommand extends Command
         $this->info('Pobieranie wyników rozegranych meczów...');
 
         $pastMatches = WorldMatch::where(function ($q) {
-                $q->where('status', '!=', 'finished')
-                    ->orWhereNull('score_home')
-                    ->orWhereNull('score_away');
-            })
+            $q->where('status', '!=', 'finished')
+                ->orWhereNull('score_home')
+                ->orWhereNull('score_away');
+        })
             ->where('kickoff_at', '<=', Carbon::now()->subMinutes(105))
             ->orderBy('kickoff_at')
             ->get();
 
         if ($pastMatches->isEmpty()) {
             $this->info('Brak meczów do zaktualizowania.');
+
             return;
         }
 
@@ -97,7 +99,7 @@ class SyncDataCommand extends Command
             $this->line("  Pobieram fixtures dla {$date}...");
 
             // Clear cache so we always get fresh data
-            \Illuminate\Support\Facades\Cache::forget("footballdata.fixtures.{$date}");
+            Cache::forget("footballdata.fixtures.{$date}");
 
             $fixtures = $api->getFixturesByDate($date);
 
@@ -108,11 +110,13 @@ class SyncDataCommand extends Command
 
                 if ($fixture === null) {
                     $this->warn("    Brak danych API dla meczu #{$match->id} ({$match->home_team} vs {$match->away_team})");
+
                     continue;
                 }
 
                 if (($fixture['status'] ?? '') !== 'FINISHED') {
                     $this->line("    Mecz #{$match->id} ({$match->home_team} vs {$match->away_team}): status {$fixture['status']} — pomijam.");
+
                     continue;
                 }
 
@@ -120,9 +124,18 @@ class SyncDataCommand extends Command
                 $scoreAway = $fixture['score']['fullTime']['away'] ?? null;
 
                 $match->update([
-                    'status'     => 'finished',
+                    'status' => 'finished',
                     'score_home' => $scoreHome,
                     'score_away' => $scoreAway,
+                    'result_type' => match ($fixture['score']['duration'] ?? 'REGULAR') {
+                        'EXTRA_TIME' => 'AET',
+                        'PENALTY_SHOOTOUT' => 'PEN',
+                        default => 'FT',
+                    },
+                    'score_home_et' => $fixture['score']['extraTime']['home'] ?? null,
+                    'score_away_et' => $fixture['score']['extraTime']['away'] ?? null,
+                    'score_home_pen' => $fixture['score']['penalties']['home'] ?? null,
+                    'score_away_pen' => $fixture['score']['penalties']['away'] ?? null,
                 ]);
 
                 $job = new FetchFinishedMatchResultsJob;
@@ -153,6 +166,7 @@ class SyncDataCommand extends Command
 
         if ($matches->isEmpty()) {
             $this->info('Brak meczów bez strzelców.');
+
             return;
         }
 

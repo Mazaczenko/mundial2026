@@ -67,6 +67,16 @@ class Dashboard extends \Filament\Pages\Dashboard
                 ->modalDescription('Pobierze z ESPN kartki, statystyki i składy dla wszystkich zakończonych meczów, którym brakuje tych danych.')
                 ->modalSubmitActionLabel('Uruchom')
                 ->action(fn () => $this->runCommand(['php84-cli', 'artisan', 'mundial:backfill-details'], 'Backfill szczegółów')),
+
+            Action::make('recalculate')
+                ->label('Przelicz wszystko od nowa')
+                ->icon('heroicon-o-calculator')
+                ->color('danger')
+                ->requiresConfirmation()
+                ->modalHeading('Przelicz wyniki i typy')
+                ->modalDescription('Pobierze ponownie wyniki wszystkich zakończonych meczów z API (z wynikami dogrywki i karnych) oraz przeliczy is_correct dla wszystkich typów.')
+                ->modalSubmitActionLabel('Uruchom')
+                ->action(fn () => $this->runCommand(['php84-cli', 'artisan', 'mundial:recalculate'], 'Przeliczanie')),
         ];
     }
 }

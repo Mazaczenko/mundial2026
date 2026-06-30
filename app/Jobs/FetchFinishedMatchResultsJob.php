@@ -54,6 +54,10 @@ class FetchFinishedMatchResultsJob implements ShouldQueue
                     'PENALTY_SHOOTOUT' => 'PEN',
                     default => 'FT',
                 },
+                'score_home_et' => $fixture['score']['extraTime']['home'] ?? null,
+                'score_away_et' => $fixture['score']['extraTime']['away'] ?? null,
+                'score_home_pen' => $fixture['score']['penalties']['home'] ?? null,
+                'score_away_pen' => $fixture['score']['penalties']['away'] ?? null,
             ]);
 
             $this->syncGoals($espnApi, $match);

@@ -37,6 +37,10 @@ export interface MatchData {
     status: 'scheduled' | 'in_play' | 'finished';
     score_home: number | null;
     score_away: number | null;
+    score_home_et: number | null;
+    score_away_et: number | null;
+    score_home_pen: number | null;
+    score_away_pen: number | null;
     can_bet: boolean;
     my_bet: Bet | null;
     others_bets: OtherBet[];

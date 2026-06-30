@@ -508,6 +508,17 @@ const emptyMessage = computed(() => {
                                                 <span v-if="match.my_bet.is_correct === true"> ✓</span>
                                                 <span v-else-if="match.my_bet.is_correct === false"> ✗</span>
                                             </span>
+                                            <template v-if="isKnockout(match.stage) && match.my_bet.predicted_home !== null && match.my_bet.predicted_away !== null">
+                                                <span class="ml-2 text-sm text-gray-500 dark:text-gray-400">
+                                                    wynik: <span class="font-semibold tabular-nums text-gray-700 dark:text-gray-300">{{ match.my_bet.predicted_home }}:{{ match.my_bet.predicted_away }}</span>
+                                                </span>
+                                                <template v-if="match.status === 'finished' && match.score_home !== null">
+                                                    <span
+                                                        v-if="match.my_bet.predicted_home === match.score_home && match.my_bet.predicted_away === match.score_away"
+                                                        class="ml-1 text-xs font-semibold text-amber-600 dark:text-amber-400"
+                                                    >+1 pkt</span>
+                                                </template>
+                                            </template>
                                         </template>
                                         <span v-else class="text-gray-400">–</span>
                                     </div>

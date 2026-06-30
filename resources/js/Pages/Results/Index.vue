@@ -131,14 +131,28 @@ const stageBadgeClass: Record<string, string> = {
 };
 
 function scoreExtraSuffix(match: MatchResult): string {
-    if (match.result_type === 'AET' && match.score_home_et !== null && match.score_away_et !== null) {
-        return `(po dogryw. ${match.score_home_et}:${match.score_away_et})`;
+    // score_home/score_away = 90-min score; score_home_et = additional ET goals
+    const h = match.score_home ?? 0;
+    const a = match.score_away ?? 0;
+
+    if (match.result_type === 'AET') {
+        if (match.score_home_et !== null && match.score_away_et !== null) {
+            return `po dogryw. ${h + match.score_home_et}:${a + match.score_away_et}`;
+        }
+        return 'po dogryw.';
     }
-    if (match.result_type === 'PEN' && match.score_home_pen !== null && match.score_away_pen !== null) {
-        return `(karne ${match.score_home_pen}:${match.score_away_pen})`;
+
+    if (match.result_type === 'PEN') {
+        const parts: string[] = [];
+        if (match.score_home_et !== null && match.score_away_et !== null) {
+            parts.push(`dogryw. ${h + match.score_home_et}:${a + match.score_away_et}`);
+        }
+        if (match.score_home_pen !== null && match.score_away_pen !== null) {
+            parts.push(`karne ${match.score_home_pen}:${match.score_away_pen}`);
+        }
+        return parts.length > 0 ? parts.join(', ') : 'po kar.';
     }
-    if (match.result_type === 'AET') return 'po dogryw.';
-    if (match.result_type === 'PEN') return 'po kar.';
+
     return '';
 }
 

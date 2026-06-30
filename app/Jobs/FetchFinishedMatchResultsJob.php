@@ -45,19 +45,29 @@ class FetchFinishedMatchResultsJob implements ShouldQueue
                 continue;
             }
 
+            $ftHome  = $fixture['score']['fullTime']['home'] ?? null;
+            $ftAway  = $fixture['score']['fullTime']['away'] ?? null;
+            $etHome  = $fixture['score']['extraTime']['home'] ?? 0;
+            $etAway  = $fixture['score']['extraTime']['away'] ?? 0;
+            $penHome = $fixture['score']['penalties']['home'] ?? 0;
+            $penAway = $fixture['score']['penalties']['away'] ?? 0;
+            $rt      = match ($fixture['score']['duration'] ?? 'REGULAR') {
+                'EXTRA_TIME'       => 'AET',
+                'PENALTY_SHOOTOUT' => 'PEN',
+                default            => 'FT',
+            };
+
+            // football-data.org packs ET and penalty goals into fullTime for AET/PEN matches;
+            // subtract them to recover the actual 90-minute score.
             $match->update([
-                'status' => 'finished',
-                'score_home' => $fixture['score']['fullTime']['home'] ?? null,
-                'score_away' => $fixture['score']['fullTime']['away'] ?? null,
-                'result_type' => match ($fixture['score']['duration'] ?? 'REGULAR') {
-                    'EXTRA_TIME' => 'AET',
-                    'PENALTY_SHOOTOUT' => 'PEN',
-                    default => 'FT',
-                },
-                'score_home_et' => $fixture['score']['extraTime']['home'] ?? null,
-                'score_away_et' => $fixture['score']['extraTime']['away'] ?? null,
-                'score_home_pen' => $fixture['score']['penalties']['home'] ?? null,
-                'score_away_pen' => $fixture['score']['penalties']['away'] ?? null,
+                'status'         => 'finished',
+                'score_home'     => $ftHome !== null ? $ftHome - $etHome - ($rt === 'PEN' ? $penHome : 0) : null,
+                'score_away'     => $ftAway !== null ? $ftAway - $etAway - ($rt === 'PEN' ? $penAway : 0) : null,
+                'result_type'    => $rt,
+                'score_home_et'  => $rt !== 'FT' ? $etHome : null,
+                'score_away_et'  => $rt !== 'FT' ? $etAway : null,
+                'score_home_pen' => $rt === 'PEN' ? $penHome : null,
+                'score_away_pen' => $rt === 'PEN' ? $penAway : null,
             ]);
 
             $this->syncGoals($espnApi, $match);

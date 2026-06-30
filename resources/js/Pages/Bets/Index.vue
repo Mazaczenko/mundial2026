@@ -103,17 +103,24 @@ function isKnockout(stage: string): boolean {
     return stage !== 'group';
 }
 
-function scoreLabel(match: MatchData): { ft: string; et: string | null; pen: string | null } {
-    const ft = match.score_home !== null && match.score_away !== null
-        ? `${match.score_home}:${match.score_away}`
-        : '–:–';
-    const et = match.score_home_et !== null && match.score_away_et !== null
-        ? `${match.score_home_et}:${match.score_away_et}`
+function scoreLabel(match: MatchData): { ft90: string; etTotal: string | null; pen: string | null } {
+    const h = match.score_home;
+    const a = match.score_away;
+    if (h === null || a === null) return { ft90: '–:–', etTotal: null, pen: null };
+
+    // score_home/score_away store actual 90-min score; score_home_et stores additional ET goals
+    const etH = match.score_home_et ?? 0;
+    const etA = match.score_away_et ?? 0;
+
+    const etTotal = (match.result_type === 'AET' || match.result_type === 'PEN') && match.score_home_et !== null
+        ? `${h + etH}:${a + etA}`
         : null;
-    const pen = match.score_home_pen !== null && match.score_away_pen !== null
+
+    const pen = match.result_type === 'PEN' && match.score_home_pen !== null
         ? `${match.score_home_pen}:${match.score_away_pen}`
         : null;
-    return { ft, et, pen };
+
+    return { ft90: `${h}:${a}`, etTotal, pen };
 }
 
 // --- Tabs ---
@@ -341,18 +348,18 @@ const emptyMessage = computed(() => {
                                     <div class="text-center">
                                         <template v-if="match.status === 'finished'">
                                             <div class="text-2xl font-bold text-gray-900 dark:text-white tabular-nums">
-                                                {{ scoreLabel(match).ft }}
+                                                {{ scoreLabel(match).ft90 }}
                                             </div>
                                             <div class="mt-0.5 text-xs text-gray-400">90'</div>
-                                            <template v-if="match.result_type === 'AET' || match.result_type === 'PEN'">
+                                            <template v-if="scoreLabel(match).etTotal !== null">
                                                 <div class="mt-1 text-sm font-semibold tabular-nums text-indigo-600 dark:text-indigo-400">
-                                                    {{ scoreLabel(match).et ?? '–:–' }}
+                                                    {{ scoreLabel(match).etTotal }}
                                                 </div>
-                                                <div class="text-xs text-gray-400">dogrywka</div>
+                                                <div class="text-xs text-gray-400">po dogrywce</div>
                                             </template>
-                                            <template v-if="match.result_type === 'PEN'">
+                                            <template v-if="scoreLabel(match).pen !== null">
                                                 <div class="mt-1 text-sm font-semibold tabular-nums text-amber-600 dark:text-amber-400">
-                                                    {{ scoreLabel(match).pen ?? '–:–' }}
+                                                    {{ scoreLabel(match).pen }}
                                                 </div>
                                                 <div class="text-xs text-gray-400">karne</div>
                                             </template>

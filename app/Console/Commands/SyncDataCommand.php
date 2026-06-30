@@ -120,22 +120,30 @@ class SyncDataCommand extends Command
                     continue;
                 }
 
-                $scoreHome = $fixture['score']['fullTime']['home'] ?? null;
-                $scoreAway = $fixture['score']['fullTime']['away'] ?? null;
+                $ftHome  = $fixture['score']['fullTime']['home'] ?? null;
+                $ftAway  = $fixture['score']['fullTime']['away'] ?? null;
+                $etHome  = $fixture['score']['extraTime']['home'] ?? 0;
+                $etAway  = $fixture['score']['extraTime']['away'] ?? 0;
+                $penHome = $fixture['score']['penalties']['home'] ?? 0;
+                $penAway = $fixture['score']['penalties']['away'] ?? 0;
+                $rt      = match ($fixture['score']['duration'] ?? 'REGULAR') {
+                    'EXTRA_TIME'       => 'AET',
+                    'PENALTY_SHOOTOUT' => 'PEN',
+                    default            => 'FT',
+                };
+
+                $scoreHome = $ftHome !== null ? $ftHome - $etHome - ($rt === 'PEN' ? $penHome : 0) : null;
+                $scoreAway = $ftAway !== null ? $ftAway - $etAway - ($rt === 'PEN' ? $penAway : 0) : null;
 
                 $match->update([
-                    'status' => 'finished',
-                    'score_home' => $scoreHome,
-                    'score_away' => $scoreAway,
-                    'result_type' => match ($fixture['score']['duration'] ?? 'REGULAR') {
-                        'EXTRA_TIME' => 'AET',
-                        'PENALTY_SHOOTOUT' => 'PEN',
-                        default => 'FT',
-                    },
-                    'score_home_et' => $fixture['score']['extraTime']['home'] ?? null,
-                    'score_away_et' => $fixture['score']['extraTime']['away'] ?? null,
-                    'score_home_pen' => $fixture['score']['penalties']['home'] ?? null,
-                    'score_away_pen' => $fixture['score']['penalties']['away'] ?? null,
+                    'status'         => 'finished',
+                    'score_home'     => $scoreHome,
+                    'score_away'     => $scoreAway,
+                    'result_type'    => $rt,
+                    'score_home_et'  => $rt !== 'FT' ? $etHome : null,
+                    'score_away_et'  => $rt !== 'FT' ? $etAway : null,
+                    'score_home_pen' => $rt === 'PEN' ? $penHome : null,
+                    'score_away_pen' => $rt === 'PEN' ? $penAway : null,
                 ]);
 
                 $job = new FetchFinishedMatchResultsJob;

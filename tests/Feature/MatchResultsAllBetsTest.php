@@ -5,6 +5,9 @@ namespace Tests\Feature;
 use App\Models\Bet;
 use App\Models\Participant;
 use App\Models\WorldMatch;
+use App\Services\BetService;
+use App\Services\EliminationService;
+use App\Services\RankingSnapshotService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Tests\TestCase;
@@ -21,8 +24,8 @@ class MatchResultsAllBetsTest extends TestCase
     {
         parent::setUp();
         $this->user = Participant::create([
-            'name'     => 'Test User',
-            'email'    => 'test@example.com',
+            'name' => 'Test User',
+            'email' => 'test@example.com',
             'password' => Hash::make('password'),
         ]);
     }
@@ -31,15 +34,15 @@ class MatchResultsAllBetsTest extends TestCase
     {
         return WorldMatch::create(array_merge([
             'api_fixture_id' => self::$fixtureId++,
-            'home_team'      => 'Poland',
-            'away_team'      => 'Brazil',
+            'home_team' => 'Poland',
+            'away_team' => 'Brazil',
             'home_team_flag' => null,
             'away_team_flag' => null,
-            'status'         => 'finished',
-            'score_home'     => 1,
-            'score_away'     => 0,
-            'kickoff_at'     => now()->subHours(2),
-            'stage'          => 'group',
+            'status' => 'finished',
+            'score_home' => 1,
+            'score_away' => 0,
+            'kickoff_at' => now()->subHours(2),
+            'stage' => 'group',
         ], $attributes));
     }
 
@@ -49,9 +52,9 @@ class MatchResultsAllBetsTest extends TestCase
         $i++;
 
         return Participant::create([
-            'name'       => $name,
-            'email'      => "participant{$i}@example.com",
-            'password'   => Hash::make('password'),
+            'name' => $name,
+            'email' => "participant{$i}@example.com",
+            'password' => Hash::make('password'),
             'eliminated' => $eliminated,
         ]);
     }
@@ -60,11 +63,11 @@ class MatchResultsAllBetsTest extends TestCase
     {
         return Bet::create(array_merge([
             'participant_id' => $participant->id,
-            'match_id'       => $match->id,
+            'match_id' => $match->id,
             'prediction_1x2' => '1',
             'predicted_home' => null,
             'predicted_away' => null,
-            'is_correct'     => true,
+            'is_correct' => true,
         ], $attributes));
     }
 
@@ -100,7 +103,7 @@ class MatchResultsAllBetsTest extends TestCase
             'prediction_1x2' => '1',
             'predicted_home' => 2,
             'predicted_away' => 0,
-            'is_correct'     => true,
+            'is_correct' => true,
         ]);
 
         $response = $this->actingAs($this->user)->get(route('results.index'));
@@ -118,8 +121,8 @@ class MatchResultsAllBetsTest extends TestCase
     public function test_all_bets_are_sorted_alphabetically_by_participant_name(): void
     {
         $match = $this->makeMatch();
-        $zara  = $this->makeParticipant('Zara');
-        $adam  = $this->makeParticipant('Adam');
+        $zara = $this->makeParticipant('Zara');
+        $adam = $this->makeParticipant('Adam');
 
         $this->makeBet($zara, $match, ['prediction_1x2' => '2', 'is_correct' => false]);
         $this->makeBet($adam, $match, ['prediction_1x2' => '1', 'is_correct' => true]);
@@ -135,7 +138,7 @@ class MatchResultsAllBetsTest extends TestCase
     public function test_eliminated_flag_is_propagated_from_participant(): void
     {
         $match = $this->makeMatch();
-        $elim  = $this->makeParticipant('Eliminated', eliminated: true);
+        $elim = $this->makeParticipant('Eliminated', eliminated: true);
         $this->makeBet($elim, $match, ['prediction_1x2' => 'X', 'is_correct' => false]);
 
         $response = $this->actingAs($this->user)->get(route('results.index'));
@@ -148,9 +151,9 @@ class MatchResultsAllBetsTest extends TestCase
     public function test_multiple_participants_bets_are_all_included(): void
     {
         $match = $this->makeMatch();
-        $p1    = $this->makeParticipant('Beta');
-        $p2    = $this->makeParticipant('Alpha');
-        $p3    = $this->makeParticipant('Gamma');
+        $p1 = $this->makeParticipant('Beta');
+        $p2 = $this->makeParticipant('Alpha');
+        $p3 = $this->makeParticipant('Gamma');
 
         $this->makeBet($p1, $match, ['prediction_1x2' => '1']);
         $this->makeBet($p2, $match, ['prediction_1x2' => 'X']);
@@ -181,5 +184,82 @@ class MatchResultsAllBetsTest extends TestCase
             ->where('matches.1.id', $match1->id)
             ->has('matches.1.all_bets', 1)
         );
+    }
+
+    public function test_knockout_bet_is_correct_when_predicted_score_matches_90min_even_if_wrong_1x2(): void
+    {
+        // Match ends 1:1 at 90 min (X), but user predicted Netherlands wins (1) with score 1:1
+        $match = $this->makeMatch([
+            'stage' => 'r16',
+            'score_home' => 1,
+            'score_away' => 1,
+        ]);
+        $alice = $this->makeParticipant('Alice');
+        $bet = Bet::create([
+            'participant_id' => $alice->id,
+            'match_id' => $match->id,
+            'prediction_1x2' => '1',   // wrong: user predicted home wins
+            'predicted_home' => 1,
+            'predicted_away' => 1,
+            'is_correct' => null,
+        ]);
+
+        $this->mock(EliminationService::class)->shouldReceive('checkAll')->once();
+        $this->mock(RankingSnapshotService::class)->shouldReceive('takeSnapshot')->once();
+
+        app(BetService::class)->resolveBets($match);
+
+        $this->assertTrue($bet->fresh()->is_correct);
+    }
+
+    public function test_knockout_bet_is_not_correct_when_wrong_1x2_and_wrong_score(): void
+    {
+        $match = $this->makeMatch([
+            'stage' => 'r16',
+            'score_home' => 2,
+            'score_away' => 0,
+        ]);
+        $bob = $this->makeParticipant('Bob');
+        $bet = Bet::create([
+            'participant_id' => $bob->id,
+            'match_id' => $match->id,
+            'prediction_1x2' => '2',   // wrong
+            'predicted_home' => 1,
+            'predicted_away' => 1,     // wrong score
+            'is_correct' => null,
+        ]);
+
+        $this->mock(EliminationService::class)->shouldReceive('checkAll')->once();
+        $this->mock(RankingSnapshotService::class)->shouldReceive('takeSnapshot')->once();
+
+        app(BetService::class)->resolveBets($match);
+
+        $this->assertFalse($bet->fresh()->is_correct);
+    }
+
+    public function test_group_stage_bet_is_not_affected_by_score_logic(): void
+    {
+        // Group match: predicted_home/away are null — only 1x2 matters
+        $match = $this->makeMatch([
+            'stage' => 'group',
+            'score_home' => 1,
+            'score_away' => 0,
+        ]);
+        $carol = $this->makeParticipant('Carol');
+        $bet = Bet::create([
+            'participant_id' => $carol->id,
+            'match_id' => $match->id,
+            'prediction_1x2' => '2',   // wrong
+            'predicted_home' => null,
+            'predicted_away' => null,
+            'is_correct' => null,
+        ]);
+
+        $this->mock(EliminationService::class)->shouldReceive('checkAll')->once();
+        $this->mock(RankingSnapshotService::class)->shouldReceive('takeSnapshot')->once();
+
+        app(BetService::class)->resolveBets($match);
+
+        $this->assertFalse($bet->fresh()->is_correct);
     }
 }

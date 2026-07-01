@@ -72,7 +72,14 @@ class BetService
         $result = $match->result1x2();
 
         foreach ($match->bets as $bet) {
-            $bet->is_correct = ($bet->prediction_1x2 === $result);
+            $correct1x2 = ($bet->prediction_1x2 === $result);
+            $correctScore = $match->isKnockout()
+                && $bet->predicted_home !== null
+                && $bet->predicted_away !== null
+                && (int) $bet->predicted_home === (int) $match->score_home
+                && (int) $bet->predicted_away === (int) $match->score_away;
+
+            $bet->is_correct = $correct1x2 || $correctScore;
             $bet->save();
         }
 

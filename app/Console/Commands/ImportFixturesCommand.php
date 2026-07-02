@@ -6,6 +6,7 @@ use App\Models\WorldMatch;
 use App\Services\FootballApiService;
 use Illuminate\Console\Command;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Cache;
 
 class ImportFixturesCommand extends Command
 {
@@ -29,6 +30,7 @@ class ImportFixturesCommand extends Command
     {
         $this->info('Fetching fixtures from football-data.org...');
 
+        Cache::forget('footballdata.fixtures.all');
         $fixtures = $footballApi->getAllFixtures();
 
         if (empty($fixtures)) {

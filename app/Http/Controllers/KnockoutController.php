@@ -61,6 +61,10 @@ class KnockoutController extends Controller
                 'status' => $match->status,
                 'score_home' => $match->score_home,
                 'score_away' => $match->score_away,
+                'score_home_et' => $match->score_home_et,
+                'score_away_et' => $match->score_away_et,
+                'score_home_pen' => $match->score_home_pen,
+                'score_away_pen' => $match->score_away_pen,
                 'result_type' => $match->result_type,
                 'my_bet' => $bet ? [
                     'prediction_1x2' => $bet->prediction_1x2,

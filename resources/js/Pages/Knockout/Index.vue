@@ -28,6 +28,10 @@ interface KnockoutMatch {
     status: 'scheduled' | 'in_play' | 'finished'
     score_home: number | null
     score_away: number | null
+    score_home_et: number | null
+    score_away_et: number | null
+    score_home_pen: number | null
+    score_away_pen: number | null
     result_type: 'FT' | 'AET' | 'PEN' | null
     my_bet: MyBet | null
     bet_stats: BetStats | null
@@ -108,8 +112,28 @@ function stageMatches(stage: string): (KnockoutMatch | null)[] {
 }
 
 function isWinner(match: KnockoutMatch, side: 'home' | 'away'): boolean {
-    if (match.status !== 'finished' || match.score_home === null || match.score_away === null) return false;
+    if (match.status !== 'finished') return false;
+    if (match.result_type === 'PEN') {
+        if (match.score_home_pen === null || match.score_away_pen === null) return false;
+        return side === 'home' ? match.score_home_pen > match.score_away_pen : match.score_away_pen > match.score_home_pen;
+    }
+    if (match.score_home === null || match.score_away === null) return false;
+    if (match.result_type === 'AET') {
+        const homeTotal = match.score_home + (match.score_home_et ?? 0);
+        const awayTotal = match.score_away + (match.score_away_et ?? 0);
+        return side === 'home' ? homeTotal > awayTotal : awayTotal > homeTotal;
+    }
     return side === 'home' ? match.score_home > match.score_away : match.score_away > match.score_home;
+}
+
+function displayScore(match: KnockoutMatch, side: 'home' | 'away'): number | null {
+    const base = side === 'home' ? match.score_home : match.score_away;
+    if (base === null) return null;
+    if (match.result_type === 'AET' || match.result_type === 'PEN') {
+        const et = side === 'home' ? (match.score_home_et ?? 0) : (match.score_away_et ?? 0);
+        return base + et;
+    }
+    return base;
 }
 
 function teamName(name: string): string {
@@ -286,7 +310,10 @@ function connectorPaths(leftStage: string, rightStage: string): string[] {
                                                     </span>
                                                     <span v-if="match.status === 'in_play'" class="font-bold text-red-500">LIVE</span>
                                                     <span v-else-if="match.status === 'finished'" class="text-gray-400">
-                                                        {{ match.result_type ?? 'FT' }}
+                                                        <template v-if="match.result_type === 'PEN' && match.score_home_pen !== null">
+                                                            k. {{ match.score_home_pen }}:{{ match.score_away_pen }}
+                                                        </template>
+                                                        <template v-else>{{ match.result_type ?? 'FT' }}</template>
                                                     </span>
                                                     <span v-else class="text-gray-400">
                                                         <span v-if="nextMatch && match.id === nextMatch.id" class="font-medium text-indigo-500 dark:text-indigo-400">
@@ -300,7 +327,10 @@ function connectorPaths(leftStage: string, rightStage: string): string[] {
                                             <!-- Home team -->
                                             <div
                                                 class="flex items-center gap-1.5 px-2 py-1"
-                                                :class="isWinner(match, 'home') ? 'bg-green-50 dark:bg-green-900/20' : ''"
+                                                :class="[
+                                                    isWinner(match, 'home') ? 'bg-green-100 dark:bg-green-900/30 border-l-2 border-green-500' : '',
+                                                    match.status === 'finished' && !isWinner(match, 'home') && isWinner(match, 'away') ? 'opacity-50' : '',
+                                                ]"
                                             >
                                                 <img
                                                     v-if="match.home_team_flag && match.home_team !== 'TBD'"
@@ -311,14 +341,15 @@ function connectorPaths(leftStage: string, rightStage: string): string[] {
                                                 <span v-else class="h-3.5 w-5 shrink-0" />
                                                 <span
                                                     class="flex-1 truncate text-xs"
-                                                    :class="isWinner(match, 'home') ? 'font-bold text-gray-900 dark:text-white' : 'font-medium text-gray-700 dark:text-gray-300'"
+                                                    :class="isWinner(match, 'home') ? 'font-bold text-gray-900 dark:text-white' : 'font-medium text-gray-600 dark:text-gray-400'"
                                                 >{{ teamName(match.home_team) }}</span>
                                                 <span
-                                                    v-if="match.score_home !== null"
+                                                    v-if="displayScore(match, 'home') !== null"
                                                     class="text-xs font-bold"
-                                                    :class="isWinner(match, 'home') ? 'text-green-700 dark:text-green-400' : 'text-gray-800 dark:text-gray-200'"
-                                                >{{ match.score_home }}</span>
-                                                <span v-if="isWinner(match, 'home')" class="text-[10px] font-bold text-green-600 dark:text-green-400">›</span>
+                                                    :class="isWinner(match, 'home') ? 'text-green-700 dark:text-green-400' : 'text-gray-600 dark:text-gray-400'"
+                                                >{{ displayScore(match, 'home') }}</span>
+                                                <span v-if="isWinner(match, 'home')" class="text-sm font-bold text-green-600 dark:text-green-400">›</span>
+                                                <span v-else-if="match.status === 'finished'" class="w-[14px]" />
                                             </div>
 
                                             <!-- Divider -->
@@ -327,7 +358,10 @@ function connectorPaths(leftStage: string, rightStage: string): string[] {
                                             <!-- Away team -->
                                             <div
                                                 class="flex items-center gap-1.5 px-2 py-1"
-                                                :class="isWinner(match, 'away') ? 'bg-green-50 dark:bg-green-900/20' : ''"
+                                                :class="[
+                                                    isWinner(match, 'away') ? 'bg-green-100 dark:bg-green-900/30 border-l-2 border-green-500' : '',
+                                                    match.status === 'finished' && !isWinner(match, 'away') && isWinner(match, 'home') ? 'opacity-50' : '',
+                                                ]"
                                             >
                                                 <img
                                                     v-if="match.away_team_flag && match.away_team !== 'TBD'"
@@ -338,14 +372,15 @@ function connectorPaths(leftStage: string, rightStage: string): string[] {
                                                 <span v-else class="h-3.5 w-5 shrink-0" />
                                                 <span
                                                     class="flex-1 truncate text-xs"
-                                                    :class="isWinner(match, 'away') ? 'font-bold text-gray-900 dark:text-white' : 'font-medium text-gray-700 dark:text-gray-300'"
+                                                    :class="isWinner(match, 'away') ? 'font-bold text-gray-900 dark:text-white' : 'font-medium text-gray-600 dark:text-gray-400'"
                                                 >{{ teamName(match.away_team) }}</span>
                                                 <span
-                                                    v-if="match.score_away !== null"
+                                                    v-if="displayScore(match, 'away') !== null"
                                                     class="text-xs font-bold"
-                                                    :class="isWinner(match, 'away') ? 'text-green-700 dark:text-green-400' : 'text-gray-800 dark:text-gray-200'"
-                                                >{{ match.score_away }}</span>
-                                                <span v-if="isWinner(match, 'away')" class="text-[10px] font-bold text-green-600 dark:text-green-400">›</span>
+                                                    :class="isWinner(match, 'away') ? 'text-green-700 dark:text-green-400' : 'text-gray-600 dark:text-gray-400'"
+                                                >{{ displayScore(match, 'away') }}</span>
+                                                <span v-if="isWinner(match, 'away')" class="text-sm font-bold text-green-600 dark:text-green-400">›</span>
+                                                <span v-else-if="match.status === 'finished'" class="w-[14px]" />
                                             </div>
 
                                             <!-- Bet stats bar -->

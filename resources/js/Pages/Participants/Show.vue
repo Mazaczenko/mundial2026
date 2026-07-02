@@ -150,6 +150,16 @@ function accuracyBarClass(pct: number | null): string {
 const otherParticipants = computed(() =>
     props.allParticipants.filter(p => p.id !== props.participant.id)
 );
+
+function pointsEarned(match: BetHistoryEntry): number | null {
+    const bet = match.my_bet;
+    if (!bet || bet.is_correct === null || match.score_home === null) return null;
+    if (!bet.is_correct) return 0;
+    if (bet.predicted_home !== null && bet.predicted_away !== null
+        && match.score_home === bet.predicted_home
+        && match.score_away === bet.predicted_away) return 2;
+    return 1;
+}
 </script>
 
 <template>
@@ -325,6 +335,22 @@ const otherParticipants = computed(() =>
                                         {{ match.my_bet.prediction_1x2 }}
                                         <span v-if="match.my_bet.is_correct === true">✓</span>
                                         <span v-else-if="match.my_bet.is_correct === false">✗</span>
+                                    </span>
+                                    <!-- Dla fazy pucharowej: obstawiony wynik -->
+                                    <span v-if="match.stage !== 'group' && match.my_bet.predicted_home !== null"
+                                          class="block text-xs text-gray-400 dark:text-gray-500 tabular-nums">
+                                        {{ match.my_bet.predicted_home }}:{{ match.my_bet.predicted_away }}
+                                    </span>
+                                    <span
+                                        v-if="match.stage !== 'group' && pointsEarned(match) !== null"
+                                        class="mt-0.5 inline-block rounded-full px-1.5 py-0.5 text-xs font-bold"
+                                        :class="pointsEarned(match) === 2
+                                            ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
+                                            : pointsEarned(match)! > 0
+                                                ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                                                : 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400'"
+                                    >
+                                        +{{ pointsEarned(match) }}p
                                     </span>
                                     <span
                                         v-if="match.was_minority && match.my_bet.is_correct === true"

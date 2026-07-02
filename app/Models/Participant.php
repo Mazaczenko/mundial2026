@@ -109,6 +109,11 @@ class Participant extends Authenticatable implements FilamentUser
                     ->whereColumn('score_home', 'bets.predicted_home')
                     ->whereColumn('score_away', 'bets.predicted_away');
             })
+            ->where(function ($q) {
+                $q->where(fn ($i) => $i->where('prediction_1x2', '1')->whereColumn('predicted_home', '>', 'predicted_away'))
+                  ->orWhere(fn ($i) => $i->where('prediction_1x2', 'X')->whereColumn('predicted_home', 'predicted_away'))
+                  ->orWhere(fn ($i) => $i->where('prediction_1x2', '2')->whereColumn('predicted_home', '<', 'predicted_away'));
+            })
             ->count();
     }
 

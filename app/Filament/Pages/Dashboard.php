@@ -68,6 +68,16 @@ class Dashboard extends \Filament\Pages\Dashboard
                 ->modalSubmitActionLabel('Uruchom')
                 ->action(fn () => $this->runCommand(['php84-cli', 'artisan', 'mundial:backfill-details'], 'Backfill szczegółów')),
 
+            Action::make('import_fixtures')
+                ->label('Import fixtures')
+                ->icon('heroicon-o-arrow-down-tray')
+                ->color('gray')
+                ->requiresConfirmation()
+                ->modalHeading('Import meczów z API')
+                ->modalDescription('Pobierze z football-data.org wszystkie mecze (w tym nowe mecze pucharowe, których drużyny były wcześniej TBD). Bezpieczne — używa updateOrCreate.')
+                ->modalSubmitActionLabel('Uruchom')
+                ->action(fn () => $this->runCommand(['php84-cli', 'artisan', 'mundial:import-fixtures'], 'Import fixtures')),
+
             Action::make('recalculate')
                 ->label('Przelicz wszystko od nowa')
                 ->icon('heroicon-o-calculator')

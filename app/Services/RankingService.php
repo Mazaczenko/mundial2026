@@ -38,6 +38,7 @@ class RankingService
                     && $b->predicted_away !== null
                     && (int) $b->predicted_home === (int) $b->match->score_home
                     && (int) $b->predicted_away === (int) $b->match->score_away
+                    && $b->prediction_1x2 === $b->match->result1x2()
             )->count();
 
             $groupCorrect = $correctFinished->filter(fn ($b) => $b->match?->stage === 'group')->count();

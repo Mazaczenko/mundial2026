@@ -157,7 +157,10 @@ function pointsEarned(match: BetHistoryEntry): number | null {
     if (!bet.is_correct) return 0;
     if (bet.predicted_home !== null && bet.predicted_away !== null
         && match.score_home === bet.predicted_home
-        && match.score_away === bet.predicted_away) return 2;
+        && match.score_away === bet.predicted_away) {
+        const implied = bet.predicted_home > bet.predicted_away ? '1' : bet.predicted_home < bet.predicted_away ? '2' : 'X';
+        if (implied === bet.prediction_1x2) return 2;
+    }
     return 1;
 }
 </script>

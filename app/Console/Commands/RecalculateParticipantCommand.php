@@ -76,9 +76,9 @@ class RecalculateParticipantCommand extends Command
             }
 
             $pts = match (true) {
-                $correctScore => 2,
-                $correct1x2   => 1,
-                default        => 0,
+                $correctScore && $correct1x2 => 2,
+                $correct1x2 || $correctScore => 1,
+                default                       => 0,
             };
 
             $scoreStr = "{$match->score_home}:{$match->score_away}";

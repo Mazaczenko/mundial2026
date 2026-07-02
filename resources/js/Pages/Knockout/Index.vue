@@ -161,14 +161,17 @@ function formatCountdown(kickoffAt: string): string {
 function pointsEarned(match: KnockoutMatch): number | null {
     if (!match.my_bet || match.status !== 'finished' || match.my_bet.is_correct === null) return null;
     if (!match.my_bet.is_correct) return 0;
-    let pts = 1;
+    const bet = match.my_bet;
     if (
-        match.my_bet.predicted_home !== null &&
-        match.my_bet.predicted_away !== null &&
-        match.score_home === match.my_bet.predicted_home &&
-        match.score_away === match.my_bet.predicted_away
-    ) pts = 2;
-    return pts;
+        bet.predicted_home !== null &&
+        bet.predicted_away !== null &&
+        match.score_home === bet.predicted_home &&
+        match.score_away === bet.predicted_away
+    ) {
+        const implied = bet.predicted_home > bet.predicted_away ? '1' : bet.predicted_home < bet.predicted_away ? '2' : 'X';
+        if (implied === bet.prediction_1x2) return 2;
+    }
+    return 1;
 }
 
 function pct(stats: BetStats, key: '1' | 'X' | '2'): number {

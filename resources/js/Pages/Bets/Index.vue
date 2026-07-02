@@ -222,7 +222,7 @@ const emptyMessage = computed(() => {
                         v-for="t in tabs"
                         :key="t.key"
                         @click="goToTab(t.key)"
-                        class="flex flex-1 items-center justify-center gap-1.5 rounded-md px-3 py-2 text-sm font-medium transition-colors"
+                        class="flex flex-1 items-center justify-center gap-1 rounded-md px-2 py-2 text-xs font-medium transition-colors sm:gap-1.5 sm:px-3 sm:text-sm"
                         :class="tab === t.key
                             ? 'bg-white text-indigo-600 shadow-sm dark:bg-gray-700 dark:text-indigo-400'
                             : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'"

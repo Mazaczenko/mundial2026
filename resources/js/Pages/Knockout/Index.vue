@@ -66,7 +66,7 @@ const hasMatches = computed(() =>
 
 const filter = ref<'all' | 'bet' | 'nobet'>('all');
 
-const CARD_HEIGHT = 72;
+const CARD_HEIGHT = 96;
 
 const maxMatchCount = computed(() => 16);
 const columnHeight = computed(() => `${maxMatchCount.value * CARD_HEIGHT}px`);
@@ -275,7 +275,7 @@ function connectorPaths(leftStage: string, rightStage: string): string[] {
                                             v-if="match === null"
                                             class="overflow-hidden rounded-lg border border-dashed border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-800/40"
                                         >
-                                            <div class="flex h-[calc(72px-1px)] flex-col justify-between p-2">
+                                            <div class="flex h-[calc(96px-1px)] flex-col justify-between p-2">
                                                 <div class="flex items-center gap-1.5 text-gray-300 dark:text-gray-600">
                                                     <span class="h-3.5 w-5 shrink-0 rounded bg-gray-200 dark:bg-gray-700" />
                                                     <span class="text-xs">TBD</span>

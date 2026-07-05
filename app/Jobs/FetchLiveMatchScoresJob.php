@@ -75,11 +75,16 @@ class FetchLiveMatchScoresJob implements ShouldQueue
             $oldAway = $match->score_away ?? 0;
             $wasNotFinished = $match->status !== 'finished';
 
-            $match->update([
-                'status' => $newStatus,
-                'score_home' => $scoreHome,
-                'score_away' => $scoreAway,
-            ]);
+            // Once football-data.org has set result_type, trust its score breakdown and
+            // stop overwriting score_home/score_away with ESPN's cumulative total (which
+            // for PEN matches includes penalty-kick goals in the aggregate figure).
+            $updateData = ['status' => $newStatus];
+            if ($match->result_type === null) {
+                $updateData['score_home'] = $scoreHome;
+                $updateData['score_away'] = $scoreAway;
+            }
+
+            $match->update($updateData);
 
             if ($newStatus === 'finished' && $wasNotFinished) {
                 (new FetchFinishedMatchResultsJob)->syncGoals($espnApi, $match);

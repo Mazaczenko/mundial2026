@@ -62,6 +62,23 @@ class WorldMatch extends Model
             return null;
         }
 
+        // For penalty shootout the match winner is determined by the penalty score, not 90-min score
+        if ($this->result_type === 'PEN') {
+            if ($this->score_home_pen === null || $this->score_away_pen === null) {
+                return null;
+            }
+            return $this->score_home_pen > $this->score_away_pen ? '1' : '2';
+        }
+
+        // For extra time, the winner is whoever leads after 120 min
+        if ($this->result_type === 'AET') {
+            $homeTotal = ($this->score_home ?? 0) + ($this->score_home_et ?? 0);
+            $awayTotal = ($this->score_away ?? 0) + ($this->score_away_et ?? 0);
+            if ($homeTotal > $awayTotal) return '1';
+            if ($awayTotal > $homeTotal) return '2';
+            return 'X';
+        }
+
         if ($this->score_home > $this->score_away) {
             return '1';
         }
@@ -97,7 +114,15 @@ class WorldMatch extends Model
 
     public function scopePendingResults(Builder $query): Builder
     {
-        return $query->where('status', 'scheduled')
+        return $query->where(function (Builder $q) {
+            // Matches that haven't been picked up yet
+            $q->where('status', 'scheduled')
+              // Matches the live job finished but football-data.org hasn't filled in result_type yet
+              ->orWhere(function (Builder $q2) {
+                  $q2->whereIn('status', ['finished', 'in_play'])
+                     ->whereNull('result_type');
+              });
+        })
             ->where('kickoff_at', '<=', Carbon::now()->subMinutes(105))
             ->where('kickoff_at', '>=', Carbon::now()->subHours(5));
     }

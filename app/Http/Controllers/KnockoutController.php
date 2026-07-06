@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Bet;
 use App\Models\Participant;
 use App\Models\WorldMatch;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -80,6 +81,8 @@ class KnockoutController extends Controller
             ->mapWithKeys(fn ($s) => [$s => $mapped->get($s, collect())->values()])
             ->filter(fn ($s) => $s->isNotEmpty());
 
+        $matchesByStage = $this->reorderForBracket($matchesByStage);
+
         return Inertia::render('Knockout/Index', [
             'matchesByStage' => $matchesByStage,
             'participant' => [
@@ -87,5 +90,131 @@ class KnockoutController extends Controller
                 'name' => $participant->name,
             ],
         ]);
+    }
+
+    /**
+     * Reorder earlier-stage matches so that pairs [2j, 2j+1] correctly feed
+     * the later-stage match at index j. Matching is done by winner team name.
+     * Unresolved/TBD matches (no winner yet) are appended at the end.
+     */
+    private function reorderForBracket(Collection $matchesByStage): Collection
+    {
+        // Process from the latest stage backwards so that each earlier stage
+        // is aligned to an already-aligned later stage.
+        $pairs = [
+            ['sf', 'final'],
+            ['qf', 'sf'],
+            ['r16', 'qf'],
+            ['r32', 'r16'],
+        ];
+
+        foreach ($pairs as [$earlier, $later]) {
+            if (! $matchesByStage->has($earlier) || ! $matchesByStage->has($later)) {
+                continue;
+            }
+
+            /** @var Collection $earlierMatches */
+            $earlierMatches = $matchesByStage->get($earlier);
+            /** @var Collection $laterMatches */
+            $laterMatches = $matchesByStage->get($later);
+
+            // Index earlier matches by their winner team name for fast lookup.
+            // Multiple unresolved matches may have null winner, so we track by match id.
+            $byWinner = [];
+            $unmatched = [];
+
+            foreach ($earlierMatches as $match) {
+                $winner = $this->getWinnerTeam($match);
+                if ($winner !== null) {
+                    $byWinner[$winner] = $match;
+                } else {
+                    $unmatched[] = $match;
+                }
+            }
+
+            $reordered = [];
+
+            foreach ($laterMatches as $laterMatch) {
+                $homeFeeder = $byWinner[$laterMatch['home_team']] ?? null;
+                $awayFeeder = $byWinner[$laterMatch['away_team']] ?? null;
+
+                if ($homeFeeder !== null) {
+                    $reordered[] = $homeFeeder;
+                    unset($byWinner[$laterMatch['home_team']]);
+                }
+
+                if ($awayFeeder !== null) {
+                    $reordered[] = $awayFeeder;
+                    unset($byWinner[$laterMatch['away_team']]);
+                }
+            }
+
+            // Append any earlier matches whose winner was not found in later stage
+            // (covers TBD teams or data inconsistencies).
+            foreach ($byWinner as $remaining) {
+                $unmatched[] = $remaining;
+            }
+
+            $matchesByStage = $matchesByStage->put($earlier, collect(array_merge($reordered, $unmatched)));
+        }
+
+        return $matchesByStage;
+    }
+
+    /**
+     * Return the winning team name for a match array, or null if the match is
+     * not yet finished / the winner cannot be determined from available data.
+     */
+    private function getWinnerTeam(array $match): ?string
+    {
+        if (($match['status'] ?? null) !== 'finished') {
+            return null;
+        }
+
+        $resultType = $match['result_type'] ?? null;
+        $scoreHome = $match['score_home'] ?? null;
+        $scoreAway = $match['score_away'] ?? null;
+        $homePen = $match['score_home_pen'] ?? null;
+        $awayPen = $match['score_away_pen'] ?? null;
+        $homeEt = $match['score_home_et'] ?? null;
+        $awayEt = $match['score_away_et'] ?? null;
+
+        if ($resultType === 'PEN') {
+            if ($homePen === null || $awayPen === null) {
+                return null;
+            }
+
+            return $homePen > $awayPen ? $match['home_team'] : $match['away_team'];
+        }
+
+        if ($resultType === 'AET') {
+            $homeTotal = ($scoreHome ?? 0) + ($homeEt ?? 0);
+            $awayTotal = ($scoreAway ?? 0) + ($awayEt ?? 0);
+
+            if ($homeTotal > $awayTotal) {
+                return $match['home_team'];
+            }
+
+            if ($awayTotal > $homeTotal) {
+                return $match['away_team'];
+            }
+
+            return null;
+        }
+
+        if ($scoreHome === null || $scoreAway === null) {
+            return null;
+        }
+
+        if ($scoreHome > $scoreAway) {
+            return $match['home_team'];
+        }
+
+        if ($scoreAway > $scoreHome) {
+            return $match['away_team'];
+        }
+
+        // Draw in 90 min without AET/PEN — should not occur in knockout, but guard anyway.
+        return null;
     }
 }

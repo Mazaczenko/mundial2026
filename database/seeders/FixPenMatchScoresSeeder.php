@@ -8,9 +8,9 @@ use Illuminate\Database\Seeder;
 
 class FixPenMatchScoresSeeder extends Seeder
 {
-    // Poprawka dla meczów PEN: API football-data.org pakuje w fullTime sumę 90min+ET+karne,
-    // więc FetchFinishedMatchResultsJob przy braku danych karnych wpisał skumulowany wynik
-    // zamiast wyniku po 90 min. Wyniki zweryfikowano ręcznie względem FIFA.com.
+    // Poprawka dla meczów PEN i AET: API football-data.org pakuje w fullTime sumę 90min+ET(+karne),
+    // więc FetchFinishedMatchResultsJob wpisał skumulowany wynik zamiast wyniku po 90 min.
+    // Wyniki zweryfikowano ręcznie względem FIFA.com.
     //
     // Zasada: score_home/away = wynik po 90 min; score_home/away_et = bramki tylko w dogrywce;
     // score_home/away_pen = wynik rzutów karnych. Dla PEN mecz po 90 min zawsze kończy się
@@ -53,6 +53,24 @@ class FixPenMatchScoresSeeder extends Seeder
             'score_home_pen' => 4,
             'score_away_pen' => 3,
             'result_type'    => 'PEN',
+        ],
+        537385 => [ // 2026-07-13 QF | Norway 1–1 England AET (0–1) — England awansuje
+            'score_home'     => 1,
+            'score_away'     => 1,
+            'score_home_et'  => 0,
+            'score_away_et'  => 1,
+            'score_home_pen' => null,
+            'score_away_pen' => null,
+            'result_type'    => 'AET',
+        ],
+        537386 => [ // 2026-07-13 QF | Argentina 1–1 Switzerland AET (2–0) — Argentina awansuje
+            'score_home'     => 1,
+            'score_away'     => 1,
+            'score_home_et'  => 2,
+            'score_away_et'  => 0,
+            'score_home_pen' => null,
+            'score_away_pen' => null,
+            'result_type'    => 'AET',
         ],
     ];
 

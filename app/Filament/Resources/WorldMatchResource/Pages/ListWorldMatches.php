@@ -18,17 +18,17 @@ class ListWorldMatches extends ListRecords
     {
         return [
             Action::make('recalculate_pen_bets')
-                ->label('Przelicz typy PEN')
+                ->label('Przelicz typy AET/PEN')
                 ->icon('heroicon-o-calculator')
                 ->color('warning')
                 ->requiresConfirmation()
-                ->modalHeading('Przelicz typy PEN')
-                ->modalDescription('Akcja ponownie wyliczy is_correct dla wszystkich typów w meczach zakończonych rzutami karnymi (result_type = PEN). Wynik 90 min w takich meczach to zawsze remis (X).')
+                ->modalHeading('Przelicz typy AET/PEN')
+                ->modalDescription('Akcja ponownie wyliczy is_correct dla wszystkich typów w meczach zakończonych dogrywką (AET) lub rzutami karnymi (PEN). Typujemy wynik po 90 minutach.')
                 ->modalSubmitActionLabel('Przelicz')
                 ->action(function (BetService $betService): void {
                     $matches = WorldMatch::query()
                         ->where('status', 'finished')
-                        ->where('result_type', 'PEN')
+                        ->whereIn('result_type', ['AET', 'PEN'])
                         ->with('bets')
                         ->get();
 
@@ -37,8 +37,8 @@ class ListWorldMatches extends ListRecords
                     }
 
                     Notification::make()
-                        ->title('Typy PEN przeliczone')
-                        ->body("Przeliczono typy dla {$matches->count()} meczów zakończonych karnym.")
+                        ->title('Typy AET/PEN przeliczone')
+                        ->body("Przeliczono typy dla {$matches->count()} meczów zakończonych dogrywką lub karnym.")
                         ->success()
                         ->send();
                 }),

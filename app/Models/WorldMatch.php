@@ -62,8 +62,9 @@ class WorldMatch extends Model
             return null;
         }
 
-        // For penalty shootout we predict the 90-min result (always a draw, but kept generic)
-        if ($this->result_type === 'PEN') {
+        // For AET and PEN we bet on the 90-min result only — extra time and
+        // penalties decide who advances but don't affect the prediction.
+        if ($this->result_type === 'AET' || $this->result_type === 'PEN') {
             if ($this->score_home === null || $this->score_away === null) {
                 return null;
             }
@@ -71,20 +72,6 @@ class WorldMatch extends Model
                 return '1';
             }
             if ($this->score_away > $this->score_home) {
-                return '2';
-            }
-
-            return 'X';
-        }
-
-        // For extra time, the winner is whoever leads after 120 min
-        if ($this->result_type === 'AET') {
-            $homeTotal = ($this->score_home ?? 0) + ($this->score_home_et ?? 0);
-            $awayTotal = ($this->score_away ?? 0) + ($this->score_away_et ?? 0);
-            if ($homeTotal > $awayTotal) {
-                return '1';
-            }
-            if ($awayTotal > $homeTotal) {
                 return '2';
             }
 

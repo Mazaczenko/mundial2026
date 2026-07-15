@@ -134,13 +134,23 @@ function isWinner(match: KnockoutMatch, side: 'home' | 'away'): boolean {
 }
 
 function displayScore(match: KnockoutMatch, side: 'home' | 'away'): number | null {
-    const base = side === 'home' ? match.score_home : match.score_away;
-    if (base === null) return null;
-    if (match.result_type === 'AET' || match.result_type === 'PEN') {
-        const et = side === 'home' ? (match.score_home_et ?? 0) : (match.score_away_et ?? 0);
-        return base + et;
+    return side === 'home' ? match.score_home : match.score_away;
+}
+
+function aetTotalLabel(match: KnockoutMatch): string | null {
+    if (match.status !== 'finished') return null;
+    if (match.result_type === 'AET' && match.score_home_et !== null) {
+        const h = (match.score_home ?? 0) + match.score_home_et;
+        const a = (match.score_away ?? 0) + (match.score_away_et ?? 0);
+        return `${h}:${a} AET`;
     }
-    return base;
+    if (match.result_type === 'PEN' && match.score_home_pen !== null) {
+        const etH = match.score_home_et !== null ? (match.score_home ?? 0) + match.score_home_et : null;
+        const etA = match.score_away_et !== null ? (match.score_away ?? 0) + (match.score_away_et ?? 0) : null;
+        const pen = `k. ${match.score_home_pen}:${match.score_away_pen}`;
+        return etH !== null ? `${etH}:${etA} AET, ${pen}` : pen;
+    }
+    return null;
 }
 
 function teamName(name: string): string {
@@ -283,9 +293,7 @@ function connectorPaths(leftStage: string, rightStage: string): string[] {
                                 >{{ pointsEarned(thirdPlaceMatch) }}p</span>
                                 <span v-if="thirdPlaceMatch.status === 'in_play'" class="font-bold text-red-500">LIVE</span>
                                 <span v-else-if="thirdPlaceMatch.status === 'finished'" class="text-gray-400">
-                                    <template v-if="thirdPlaceMatch.result_type === 'PEN' && thirdPlaceMatch.score_home_pen !== null">
-                                        k. {{ thirdPlaceMatch.score_home_pen }}:{{ thirdPlaceMatch.score_away_pen }}
-                                    </template>
+                                    <template v-if="aetTotalLabel(thirdPlaceMatch)">{{ aetTotalLabel(thirdPlaceMatch) }}</template>
                                     <template v-else>{{ thirdPlaceMatch.result_type ?? 'FT' }}</template>
                                 </span>
                                 <span v-else class="text-gray-400">
@@ -407,9 +415,7 @@ function connectorPaths(leftStage: string, rightStage: string): string[] {
                                                     </span>
                                                     <span v-if="match.status === 'in_play'" class="font-bold text-red-500">LIVE</span>
                                                     <span v-else-if="match.status === 'finished'" class="text-gray-400">
-                                                        <template v-if="match.result_type === 'PEN' && match.score_home_pen !== null">
-                                                            k. {{ match.score_home_pen }}:{{ match.score_away_pen }}
-                                                        </template>
+                                                        <template v-if="aetTotalLabel(match)">{{ aetTotalLabel(match) }}</template>
                                                         <template v-else>{{ match.result_type ?? 'FT' }}</template>
                                                     </span>
                                                     <span v-else class="text-gray-400">

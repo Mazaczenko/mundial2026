@@ -23,7 +23,7 @@ class ImportFixturesCommand extends Command
         'QUARTER_FINALS' => 'qf',
         'SEMI_FINALS'    => 'sf',
         'FINAL'          => 'final',
-        'THIRD_PLACE'    => 'final',
+        'THIRD_PLACE'    => '3rd_place',
     ];
 
     public function handle(FootballApiService $footballApi): int
@@ -63,9 +63,36 @@ class ImportFixturesCommand extends Command
             $groupName = $this->extractGroupName($fixture['group'] ?? null, $stage);
             $isFinished = ($fixture['status'] ?? '') === 'FINISHED';
 
+            $scoreData = [];
+            if ($isFinished) {
+                $ftHome  = $fixture['score']['fullTime']['home'] ?? null;
+                $ftAway  = $fixture['score']['fullTime']['away'] ?? null;
+                $rtHome  = $fixture['score']['regularTime']['home'] ?? null;
+                $rtAway  = $fixture['score']['regularTime']['away'] ?? null;
+                $etHome  = $fixture['score']['extraTime']['home'] ?? 0;
+                $etAway  = $fixture['score']['extraTime']['away'] ?? 0;
+                $penHome = $fixture['score']['penalties']['home'] ?? 0;
+                $penAway = $fixture['score']['penalties']['away'] ?? 0;
+                $rt      = match ($fixture['score']['duration'] ?? 'REGULAR') {
+                    'EXTRA_TIME'       => 'AET',
+                    'PENALTY_SHOOTOUT' => 'PEN',
+                    default            => 'FT',
+                };
+
+                $scoreData = [
+                    'score_home'     => $rtHome ?? ($ftHome !== null ? $ftHome - $etHome - ($rt === 'PEN' ? $penHome : 0) : null),
+                    'score_away'     => $rtAway ?? ($ftAway !== null ? $ftAway - $etAway - ($rt === 'PEN' ? $penAway : 0) : null),
+                    'result_type'    => $rt,
+                    'score_home_et'  => $rt !== 'FT' ? $etHome : null,
+                    'score_away_et'  => $rt !== 'FT' ? $etAway : null,
+                    'score_home_pen' => $rt === 'PEN' ? $penHome : null,
+                    'score_away_pen' => $rt === 'PEN' ? $penAway : null,
+                ];
+            }
+
             WorldMatch::updateOrCreate(
                 ['api_fixture_id' => $fixture['id']],
-                [
+                array_merge([
                     'home_team'      => $homeTeam,
                     'away_team'      => $awayTeam,
                     'home_team_flag' => $fixture['homeTeam']['crest'] ?? null,
@@ -74,9 +101,7 @@ class ImportFixturesCommand extends Command
                     'stage'          => $stage,
                     'group_name'     => $groupName,
                     'status'         => $isFinished ? 'finished' : 'scheduled',
-                    'score_home'     => $isFinished ? ($fixture['score']['fullTime']['home'] ?? null) : null,
-                    'score_away'     => $isFinished ? ($fixture['score']['fullTime']['away'] ?? null) : null,
-                ]
+                ], $scoreData)
             );
 
             $count++;

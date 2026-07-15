@@ -60,6 +60,7 @@ class WorldMatchResource extends Resource
                                 'r16' => '1/16',
                                 'qf' => 'Ćwierćfinał',
                                 'sf' => 'Półfinał',
+                                '3rd_place' => 'Mecz o 3. miejsce',
                                 'final' => 'Finał',
                             ]),
 
@@ -185,6 +186,7 @@ class WorldMatchResource extends Resource
                         'r16' => 'info',
                         'qf' => 'warning',
                         'sf' => 'warning',
+                        '3rd_place' => 'warning',
                         'final' => 'danger',
                         default => 'gray',
                     })
@@ -194,6 +196,7 @@ class WorldMatchResource extends Resource
                         'r16' => '1/16',
                         'qf' => 'Ćwierćfinał',
                         'sf' => 'Półfinał',
+                        '3rd_place' => 'Mecz o 3.',
                         'final' => 'Finał',
                         default => $state,
                     }),
@@ -230,6 +233,7 @@ class WorldMatchResource extends Resource
                         'r16' => '1/16',
                         'qf' => 'Ćwierćfinał',
                         'sf' => 'Półfinał',
+                        '3rd_place' => 'Mecz o 3. miejsce',
                         'final' => 'Finał',
                     ]),
 

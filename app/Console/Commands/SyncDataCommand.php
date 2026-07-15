@@ -122,6 +122,8 @@ class SyncDataCommand extends Command
 
                 $ftHome  = $fixture['score']['fullTime']['home'] ?? null;
                 $ftAway  = $fixture['score']['fullTime']['away'] ?? null;
+                $rtHome  = $fixture['score']['regularTime']['home'] ?? null;
+                $rtAway  = $fixture['score']['regularTime']['away'] ?? null;
                 $etHome  = $fixture['score']['extraTime']['home'] ?? 0;
                 $etAway  = $fixture['score']['extraTime']['away'] ?? 0;
                 $penHome = $fixture['score']['penalties']['home'] ?? 0;
@@ -132,8 +134,8 @@ class SyncDataCommand extends Command
                     default            => 'FT',
                 };
 
-                $scoreHome = $ftHome !== null ? $ftHome - $etHome - ($rt === 'PEN' ? $penHome : 0) : null;
-                $scoreAway = $ftAway !== null ? $ftAway - $etAway - ($rt === 'PEN' ? $penAway : 0) : null;
+                $scoreHome = $rtHome ?? ($ftHome !== null ? $ftHome - $etHome - ($rt === 'PEN' ? $penHome : 0) : null);
+                $scoreAway = $rtAway ?? ($ftAway !== null ? $ftAway - $etAway - ($rt === 'PEN' ? $penAway : 0) : null);
 
                 $match->update([
                     'status'         => 'finished',

@@ -64,6 +64,8 @@ class RecalculateResultsCommand extends Command
 
                 $ftHome  = $fixture['score']['fullTime']['home'] ?? null;
                 $ftAway  = $fixture['score']['fullTime']['away'] ?? null;
+                $rtHome  = $fixture['score']['regularTime']['home'] ?? null;
+                $rtAway  = $fixture['score']['regularTime']['away'] ?? null;
                 $etHome  = $fixture['score']['extraTime']['home'] ?? 0;
                 $etAway  = $fixture['score']['extraTime']['away'] ?? 0;
                 $penHome = $fixture['score']['penalties']['home'] ?? 0;
@@ -74,9 +76,12 @@ class RecalculateResultsCommand extends Command
                     default            => 'FT',
                 };
 
+                $scoreHome = $rtHome ?? ($ftHome !== null ? $ftHome - $etHome - ($rt === 'PEN' ? $penHome : 0) : null);
+                $scoreAway = $rtAway ?? ($ftAway !== null ? $ftAway - $etAway - ($rt === 'PEN' ? $penAway : 0) : null);
+
                 $match->update([
-                    'score_home'     => $ftHome !== null ? $ftHome - $etHome - ($rt === 'PEN' ? $penHome : 0) : null,
-                    'score_away'     => $ftAway !== null ? $ftAway - $etAway - ($rt === 'PEN' ? $penAway : 0) : null,
+                    'score_home'     => $scoreHome,
+                    'score_away'     => $scoreAway,
                     'result_type'    => $rt,
                     'score_home_et'  => $rt !== 'FT' ? $etHome : null,
                     'score_away_et'  => $rt !== 'FT' ? $etAway : null,

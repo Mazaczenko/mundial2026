@@ -51,11 +51,12 @@ const STAGE_LABELS: Record<string, string> = {
     r16: '1/16 finału',
     qf: 'Ćwierćfinał',
     sf: 'Półfinał',
+    '3rd_place': 'Mecz o 3. miejsce',
     final: 'Finał',
 };
 
 const STAGE_MATCH_COUNTS: Record<string, number> = {
-    r32: 16, r16: 8, qf: 4, sf: 2, final: 1,
+    r32: 16, r16: 8, qf: 4, sf: 2, '3rd_place': 1, final: 1,
 };
 
 const stages = computed(() => [...STAGE_ORDER]);
@@ -76,8 +77,14 @@ let countdownTimer: ReturnType<typeof setInterval> | null = null;
 onMounted(() => { countdownTimer = setInterval(() => { now.value = new Date(); }, 1000); });
 onUnmounted(() => { if (countdownTimer) clearInterval(countdownTimer); });
 
+const ALL_STAGES = [...STAGE_ORDER, '3rd_place'] as const;
+
 const allKnockoutMatches = computed(() =>
-    STAGE_ORDER.flatMap(s => props.matchesByStage[s] ?? [])
+    ALL_STAGES.flatMap(s => props.matchesByStage[s] ?? [])
+);
+
+const thirdPlaceMatch = computed(() =>
+    (props.matchesByStage['3rd_place'] ?? [])[0] ?? null
 );
 
 const nextMatch = computed(() => {
@@ -253,7 +260,94 @@ function connectorPaths(leftStage: string, rightStage: string): string[] {
                     Faza pucharowa jeszcze się nie rozpoczęła.
                 </div>
 
-                <div v-else class="overflow-x-auto overflow-y-hidden pb-4">
+                <!-- 3rd place match — shown separately below the main bracket -->
+                <div v-if="thirdPlaceMatch" class="mb-4">
+                    <div class="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                        Mecz o 3. miejsce
+                    </div>
+                    <div class="w-48 overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800">
+                        <!-- Status bar -->
+                        <div class="flex items-center justify-between px-2 pt-1 text-xs">
+                            <span v-if="thirdPlaceMatch.my_bet" class="font-medium text-indigo-600 dark:text-indigo-400">
+                                {{ thirdPlaceMatch.my_bet.prediction_1x2 }}
+                                <span v-if="thirdPlaceMatch.my_bet.predicted_home !== null" class="text-gray-400">
+                                    ({{ thirdPlaceMatch.my_bet.predicted_home }}:{{ thirdPlaceMatch.my_bet.predicted_away }})
+                                </span>
+                            </span>
+                            <span v-else class="text-gray-300 dark:text-gray-600">–</span>
+                            <span class="flex items-center gap-1">
+                                <span
+                                    v-if="pointsEarned(thirdPlaceMatch) !== null"
+                                    class="rounded-full px-1.5 py-0.5 text-xs font-bold"
+                                    :class="pointsEarned(thirdPlaceMatch)! > 0 ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400'"
+                                >{{ pointsEarned(thirdPlaceMatch) }}p</span>
+                                <span v-if="thirdPlaceMatch.status === 'in_play'" class="font-bold text-red-500">LIVE</span>
+                                <span v-else-if="thirdPlaceMatch.status === 'finished'" class="text-gray-400">
+                                    <template v-if="thirdPlaceMatch.result_type === 'PEN' && thirdPlaceMatch.score_home_pen !== null">
+                                        k. {{ thirdPlaceMatch.score_home_pen }}:{{ thirdPlaceMatch.score_away_pen }}
+                                    </template>
+                                    <template v-else>{{ thirdPlaceMatch.result_type ?? 'FT' }}</template>
+                                </span>
+                                <span v-else class="text-gray-400">
+                                    <span v-if="nextMatch && thirdPlaceMatch.id === nextMatch.id" class="font-medium text-indigo-500 dark:text-indigo-400">
+                                        {{ formatCountdown(thirdPlaceMatch.kickoff_at) }}
+                                    </span>
+                                    <span v-else>{{ formatKickoff(thirdPlaceMatch.kickoff_at) }}</span>
+                                </span>
+                            </span>
+                        </div>
+                        <!-- Home team -->
+                        <div
+                            class="flex items-center gap-1.5 px-2 py-1"
+                            :class="[
+                                isWinner(thirdPlaceMatch, 'home') ? 'bg-green-100 dark:bg-green-900/30 border-l-2 border-green-500' : '',
+                                thirdPlaceMatch.status === 'finished' && !isWinner(thirdPlaceMatch, 'home') && isWinner(thirdPlaceMatch, 'away') ? 'opacity-50' : '',
+                            ]"
+                        >
+                            <img v-if="thirdPlaceMatch.home_team_flag && thirdPlaceMatch.home_team !== 'TBD'" :src="thirdPlaceMatch.home_team_flag" class="h-3.5 w-5 shrink-0 object-contain" :alt="thirdPlaceMatch.home_team" />
+                            <span v-else class="h-3.5 w-5 shrink-0" />
+                            <span class="flex-1 truncate text-xs" :class="isWinner(thirdPlaceMatch, 'home') ? 'font-bold text-gray-900 dark:text-white' : 'font-medium text-gray-600 dark:text-gray-400'">{{ teamName(thirdPlaceMatch.home_team) }}</span>
+                            <span v-if="displayScore(thirdPlaceMatch, 'home') !== null" class="text-xs font-bold" :class="isWinner(thirdPlaceMatch, 'home') ? 'text-green-700 dark:text-green-400' : 'text-gray-600 dark:text-gray-400'">{{ displayScore(thirdPlaceMatch, 'home') }}</span>
+                            <span v-if="isWinner(thirdPlaceMatch, 'home')" class="text-sm font-bold text-green-600 dark:text-green-400">›</span>
+                            <span v-else-if="thirdPlaceMatch.status === 'finished'" class="w-[14px]" />
+                        </div>
+                        <!-- Divider -->
+                        <div class="mx-2 border-t border-gray-100 dark:border-gray-700" />
+                        <!-- Away team -->
+                        <div
+                            class="flex items-center gap-1.5 px-2 py-1"
+                            :class="[
+                                isWinner(thirdPlaceMatch, 'away') ? 'bg-green-100 dark:bg-green-900/30 border-l-2 border-green-500' : '',
+                                thirdPlaceMatch.status === 'finished' && !isWinner(thirdPlaceMatch, 'away') && isWinner(thirdPlaceMatch, 'home') ? 'opacity-50' : '',
+                            ]"
+                        >
+                            <img v-if="thirdPlaceMatch.away_team_flag && thirdPlaceMatch.away_team !== 'TBD'" :src="thirdPlaceMatch.away_team_flag" class="h-3.5 w-5 shrink-0 object-contain" :alt="thirdPlaceMatch.away_team" />
+                            <span v-else class="h-3.5 w-5 shrink-0" />
+                            <span class="flex-1 truncate text-xs" :class="isWinner(thirdPlaceMatch, 'away') ? 'font-bold text-gray-900 dark:text-white' : 'font-medium text-gray-600 dark:text-gray-400'">{{ teamName(thirdPlaceMatch.away_team) }}</span>
+                            <span v-if="displayScore(thirdPlaceMatch, 'away') !== null" class="text-xs font-bold" :class="isWinner(thirdPlaceMatch, 'away') ? 'text-green-700 dark:text-green-400' : 'text-gray-600 dark:text-gray-400'">{{ displayScore(thirdPlaceMatch, 'away') }}</span>
+                            <span v-if="isWinner(thirdPlaceMatch, 'away')" class="text-sm font-bold text-green-600 dark:text-green-400">›</span>
+                            <span v-else-if="thirdPlaceMatch.status === 'finished'" class="w-[14px]" />
+                        </div>
+                        <!-- Bet stats bar -->
+                        <div v-if="thirdPlaceMatch.bet_stats && thirdPlaceMatch.bet_stats.total > 0" class="flex h-5 overflow-hidden rounded-b">
+                            <div
+                                v-for="(key, kIdx) in (['1', 'X', '2'] as const)"
+                                :key="key"
+                                class="flex items-center justify-center text-[8px] font-bold text-white transition-all"
+                                :class="[
+                                    kIdx === 0 ? 'bg-blue-500' : kIdx === 1 ? 'bg-gray-400' : 'bg-orange-500',
+                                    thirdPlaceMatch.my_bet?.prediction_1x2 === key ? 'ring-1 ring-inset ring-white/60' : '',
+                                ]"
+                                :style="{ width: pct(thirdPlaceMatch.bet_stats, key) + '%' }"
+                            >
+                                <span v-if="pct(thirdPlaceMatch.bet_stats, key) >= 15">{{ pct(thirdPlaceMatch.bet_stats, key) }}%</span>
+                            </div>
+                        </div>
+                        <div v-else class="h-5 rounded-b bg-gray-50 dark:bg-gray-700/30" />
+                    </div>
+                </div>
+
+                <div v-if="hasMatches" class="overflow-x-auto overflow-y-hidden pb-4">
                     <div class="flex items-start" :style="{ minWidth: `${stages.length * 216}px` }">
 
                         <template v-for="(stage, stageIdx) in stages" :key="stage">

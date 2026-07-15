@@ -12,7 +12,7 @@ use Inertia\Response;
 
 class KnockoutController extends Controller
 {
-    private const STAGE_ORDER = ['r32', 'r16', 'qf', 'sf', 'final'];
+    private const STAGE_ORDER = ['r32', 'r16', 'qf', 'sf', '3rd_place', 'final'];
 
     public function index(): Response
     {
